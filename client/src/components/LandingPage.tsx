@@ -58,10 +58,10 @@ const LandingPage = () => {
                 <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
 
                   <Link
-                    to="/freelance"
+                    to="/workflows"
                     className="bg-gradient-to-r from-[#a855f7] to-[#c084fc] text-white px-8 py-4 rounded-xl font-bold text-lg shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:scale-[1.02] transition-all"
                   >
-                    Start Freelance Escrow
+                    Start Workflows Escrow
                   </Link>
 
                   <Link
@@ -89,7 +89,7 @@ const LandingPage = () => {
                   <div className="space-y-4 text-sm text-[#8a8a98]">
                     <div className="flex justify-between">
                       <span>Escrow Type</span>
-                      <span className="text-white">Freelance</span>
+                      <span className="text-white">Workflows</span>
                     </div>
 
                     <div className="flex justify-between">
@@ -222,7 +222,7 @@ const LandingPage = () => {
                 </Link>
               </div>
 
-              {/* Mode 3: Freelance AI */}
+              {/* Mode 3: Workflows AI */}
               <div className="group relative bg-white/[0.02] border border-[#a855f7]/20 rounded-[2.5rem] p-8 lg:p-10 transition-all duration-500 hover:-translate-y-2 hover:bg-[#a855f7]/05 hover:border-[#a855f7]/40 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-[#a855f7]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
@@ -237,11 +237,11 @@ const LandingPage = () => {
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#a855f7] to-[#c084fc] flex items-center justify-center text-white mb-10 shadow-[0_10px_30px_rgba(168,85,247,0.3)] group-hover:scale-110 transition-transform duration-500 relative z-10">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-4 font-['Outfit'] relative z-10">Freelance Workspace</h3>
+                <h3 className="text-2xl font-bold text-white mb-4 font-['Outfit'] relative z-10">Workflows Workspace</h3>
                 <p className="text-[#8a8a98] mb-8 leading-relaxed font-medium relative z-10">
                   The future of work. Claude AI autonomously verifies code deliverables against your spec to trigger instant payments.
                 </p>
-                <Link to="/freelance" className="relative z-10 inline-flex items-center gap-2 text-[#a855f7] font-bold hover:gap-3 transition-all">
+                <Link to="/workflows" className="relative z-10 inline-flex items-center gap-2 text-[#a855f7] font-bold hover:gap-3 transition-all">
                   Launch Workspace <span>→</span>
                 </Link>
               </div>
