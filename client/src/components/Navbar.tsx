@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,6 +27,11 @@ const Navbar = () => {
     { name: 'Freelance', path: '/freelance' },
     { name: 'API Integration', path: '/api' },
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <nav 
@@ -58,9 +66,18 @@ const Navbar = () => {
           ))}
         </ul>
         <div className="flex items-center">
-          <button className="bg-gradient-to-br from-[#00ff88] to-[#00d4ff] text-[#0a0a0c] border-none py-2.5 px-6 rounded-lg font-semibold text-[0.95rem] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(0,255,136,0.4)]">
-            Connect Wallet
-          </button>
+          {isAuthenticated ? (
+            <button 
+              onClick={handleLogout}
+              className="bg-transparent border border-white/20 text-white py-2.5 px-6 rounded-lg font-semibold text-[0.95rem] cursor-pointer transition-all duration-200 hover:bg-white/10 hover:border-white/30"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <button className="bg-gradient-to-br from-[#00ff88] to-[#00d4ff] text-[#0a0a0c] border-none py-2.5 px-6 rounded-lg font-semibold text-[0.95rem] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(0,255,136,0.4)]">
+              Connect Wallet
+            </button>
+          )}
         </div>
       </div>
     </nav>
