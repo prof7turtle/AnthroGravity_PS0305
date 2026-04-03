@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useWallet } from '@txnlab/use-wallet-react';
+import algosdk from 'algosdk';
 import {
   deliverEscrow,
   disputeEscrow,
   getEscrow,
-  requestFundEscrowTransaction,
   type EscrowRecord,
 } from '../lib/escrowApi';
 
@@ -15,7 +16,7 @@ type EscrowView = EscrowRecord & {
 type FundingPreview = {
   receiver: string;
   amount: number;
-  unsignedTransaction: string;
+  unsignedTransactions: string[];
 };
 
 const normalizeStringArray = (value: unknown): string[] => {
@@ -99,6 +100,7 @@ const truncateAddress = (value: string) => {
 
 const EscrowDetail = () => {
   const { appId } = useParams<{ appId: string }>();
+  const { activeAddress, signTransactions } = useWallet();
   const [escrow, setEscrow] = useState<EscrowView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -152,6 +154,12 @@ const EscrowDetail = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeId]);
 
+  useEffect(() => {
+    if (!buyerAddressInput && activeAddress) {
+      setBuyerAddressInput(activeAddress);
+    }
+  }, [activeAddress, buyerAddressInput]);
+
   const runAction = async (
     action: 'fund' | 'deliver' | 'dispute',
     task: () => Promise<void>,
@@ -176,19 +184,70 @@ const EscrowDetail = () => {
     await runAction(
       'fund',
       async () => {
-        if (!buyerAddressInput.trim()) {
-          throw new Error('Buyer address is required to prepare funding transaction');
+        const buyerAddress = buyerAddressInput.trim() || activeAddress || '';
+        if (!buyerAddress) throw new Error('Buyer address is required to prepare funding transaction');
+        if (!activeAddress) throw new Error('Connect wallet before funding');
+
+        const amountMicroAlgo = Math.max(1, Number(escrow?.amount || 0) * 1_000_000);
+        const prepare = await fetch(`http://localhost:5000/api/escrow/${effectiveEscrowId}/fund`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ buyerAddress, amountMicroAlgo }),
+        });
+
+        if (!prepare.ok) {
+          const payload = await prepare.json().catch(() => ({}));
+          throw new Error(payload.error || 'Failed to prepare fund transaction');
         }
-        const result = await requestFundEscrowTransaction(effectiveEscrowId, {
-          buyerAddress: buyerAddressInput.trim(),
+
+        const preparedPayload = await prepare.json();
+        const unsignedTxns: string[] =
+          preparedPayload?.data?.unsignedTxns ||
+          preparedPayload?.data?.unsignedTransactions ||
+          [];
+
+        if (!Array.isArray(unsignedTxns) || unsignedTxns.length === 0) {
+          throw new Error('Backend did not return unsigned transactions');
+        }
+
+        const decodedTransactions = unsignedTxns.map((encoded: string) => {
+          const bytes = Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0));
+          return algosdk.decodeUnsignedTransaction(bytes);
         });
+
+        const signedGroups = await signTransactions([decodedTransactions as any]);
+        const signedTransactions = Array.isArray(signedGroups) ? signedGroups[0] : [];
+        const signedTxns = (signedTransactions || [])
+          .filter((blob: Uint8Array | null | undefined): blob is Uint8Array => blob instanceof Uint8Array)
+          .map((blob: Uint8Array) => btoa(String.fromCharCode(...blob)));
+
+        if (!signedTxns.length) {
+          throw new Error('Wallet did not return signed transactions');
+        }
+
+        const submit = await fetch('http://localhost:5000/api/escrow/submit-signed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ signedTxns }),
+        });
+
+        if (!submit.ok) {
+          const payload = await submit.json().catch(() => ({}));
+          throw new Error(payload.error || 'Failed to submit signed transactions');
+        }
+
+        const submitPayload = await submit.json();
         setFundingPreview({
-          receiver: result.receiver,
-          amount: result.amount,
-          unsignedTransaction: result.unsignedTransaction,
+          receiver: preparedPayload?.data?.escrowAddress || '',
+          amount: amountMicroAlgo,
+          unsignedTransactions: unsignedTxns,
         });
+        const txId = submitPayload?.data?.txId;
+        if (txId) {
+          setActionStatus(`Funding submitted successfully. Tx: ${txId}`);
+        }
       },
-      'Unsigned funding transaction prepared. Sign and submit it with wallet to move on-chain.',
+      'Funding transaction signed and submitted.',
     );
   };
 
@@ -348,9 +407,11 @@ const EscrowDetail = () => {
                   <p className="text-xs uppercase tracking-widest text-cyan-200/80">Funding Transaction Preview</p>
                   <p className="mt-2 text-sm text-cyan-100">Receiver: {fundingPreview.receiver}</p>
                   <p className="mt-1 text-sm text-cyan-100">Amount (microALGO): {fundingPreview.amount}</p>
-                  <p className="mt-2 break-all font-mono text-xs text-cyan-100/90">
-                    {fundingPreview.unsignedTransaction}
-                  </p>
+                  {fundingPreview.unsignedTransactions.map((txn, index) => (
+                    <p key={index} className="mt-2 break-all font-mono text-xs text-cyan-100/90">
+                      Txn {index + 1}: {txn}
+                    </p>
+                  ))}
                 </div>
               )}
             </article>

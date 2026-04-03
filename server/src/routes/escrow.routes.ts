@@ -124,24 +124,26 @@ router.get('/:appId', async (req: Request, res: Response): Promise<void> => {
 router.post('/:appId/fund', async (req: Request, res: Response): Promise<void> => {
   try {
     const appId = parseInt(req.params.appId as string);
-    const { buyer, amount }: FundEscrowRequest = req.body;
+    const { buyer, amount, buyerAddress, amountMicroAlgo }: FundEscrowRequest & { buyerAddress?: string; amountMicroAlgo?: number } = req.body;
+    const resolvedBuyer = buyerAddress || buyer;
+    const resolvedAmount = amountMicroAlgo || amount;
 
     if (isNaN(appId) || appId <= 0) {
       res.status(400).json({ error: 'Invalid app ID' });
       return;
     }
 
-    if (!buyer || !amount) {
+    if (!resolvedBuyer || !resolvedAmount) {
       res.status(400).json({ error: 'Missing buyer or amount' });
       return;
     }
 
-    if (!algosdk.isValidAddress(buyer)) {
+    if (!algosdk.isValidAddress(resolvedBuyer)) {
       res.status(400).json({ error: 'Invalid buyer address' });
       return;
     }
 
-    if (amount <= 0) {
+    if (resolvedAmount <= 0) {
       res.status(400).json({ error: 'Amount must be positive' });
       return;
     }
@@ -154,6 +156,7 @@ router.post('/:appId/fund', async (req: Request, res: Response): Promise<void> =
     }
 
     const escrowAddress = algorandService.getApplicationAddress(appId);
+    const unsignedTxns = await algorandService.buildFundTransactions(appId, resolvedBuyer, resolvedAmount);
 
     res.json({
       success: true,
@@ -161,9 +164,11 @@ router.post('/:appId/fund', async (req: Request, res: Response): Promise<void> =
       data: {
         appId,
         escrowAddress,
-        buyer,
-        amount,
-        note: 'Send atomic group: [Payment to escrow address, AppCall to fund()]',
+        buyer: resolvedBuyer,
+        amount: resolvedAmount,
+        unsignedTxns,
+        unsignedTransactions: unsignedTxns,
+        note: 'Sign the atomic group and submit via /api/escrow/submit-signed-txns',
       },
     });
   } catch (error: any) {
@@ -807,6 +812,34 @@ router.post('/submit-signed-txns', async (req: Request, res: Response): Promise<
     });
   } catch (error: any) {
     console.error('Error submitting signed transactions:', error);
+    res.status(500).json({ error: error.message || 'Failed to submit transactions' });
+  }
+});
+
+// Backward-compatible alias for clients using /submit-signed
+router.post('/submit-signed', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const signedTransactions = req.body.signedTransactions || req.body.signedTxns;
+
+    if (!signedTransactions || !Array.isArray(signedTransactions)) {
+      res.status(400).json({ error: 'Missing or invalid signedTransactions array' });
+      return;
+    }
+
+    const txns = signedTransactions.map((txn: string) => new Uint8Array(Buffer.from(txn, 'base64')));
+    const txId = txns.length === 1
+      ? await algorandService.submitTransaction(txns[0])
+      : await algorandService.submitTransactionGroup(txns);
+
+    res.json({
+      success: true,
+      data: {
+        txId,
+        loraUrl: `https://lora.algokit.io/${process.env.ALGORAND_NETWORK || 'testnet'}/transaction/${txId}`,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error submitting signed transactions (alias):', error);
     res.status(500).json({ error: error.message || 'Failed to submit transactions' });
   }
 });

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useWallet } from '@txnlab/use-wallet-react';
 import axios from 'axios';
 
-const DEMO_SELLER_ADDRESS = 'O46OHE3KQGD6YVJUGXI7MRI33ZSOT3ODXGKKPOQWM5RVZCEKVJFHVGWDL4';
+const DEMO_SELLER_ADDRESS = '5RB7OWL6RVUKLW3V3LK2SH6QCJ6JMK7CX4QNITIBZG7NOIKUCJNLL4LM6M';
 
 const DUMMY_PRODUCTS = [
   {
