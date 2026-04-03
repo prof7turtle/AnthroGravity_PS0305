@@ -6,6 +6,8 @@
   "scripts": {
     "build": "npx puya-ts src/*.algo.ts --out-dir src/artifacts",
     "generate-clients": "algokit generate client src/artifacts/EscrowFactory.arc32.json --output src/contracts/EscrowFactoryClient.ts && algokit generate client src/artifacts/EscrowContract.arc32.json --output src/contracts/EscrowContractClient.ts",
+    "deploy": "npx ts-node --transpileOnly src/deploy.ts",
+    "deploy:testnet": "cross-env ALGORAND_NETWORK=testnet npx ts-node --transpileOnly src/deploy.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "compile": "npx puya-ts src/*.algo.ts --out-dir src/artifacts"
