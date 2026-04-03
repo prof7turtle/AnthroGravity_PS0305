@@ -1,4 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import {
+  createEscrow,
+  deliverEscrow,
+  disputeEscrow,
+  fundEscrow,
+  getEscrow,
+  resolveEscrow,
+  submitEscrowWork,
+  verifyEscrow,
+} from '../lib/escrowApi';
+import type { EscrowRecord } from '../lib/escrowApi';
 
 // ─── Blockchain States (from smart contract) ────────────────────────────
 type BlockchainState = 'CREATED' | 'FUNDED' | 'COMPLETED' | 'DISPUTED' | 'REFUNDED' | 'EXPIRED';
@@ -56,15 +67,94 @@ const INITIAL_ESCROW: EscrowData = {
   aiVerdict: null,
 };
 
+const DEMO_ESCROW_STORAGE_KEY = 'algoescrow_workflows_id';
+
+const mapEscrowToView = (record: EscrowRecord): EscrowData => ({
+  id: record.escrowId,
+  title: record.itemName,
+  clientAddr: record.buyerAddress || 'Pending funding',
+  freelancerAddr: record.sellerAddress,
+  amount: record.amount,
+  currency: record.currency,
+  deadline: record.deadlineAt,
+  requirements: record.requirements.length
+    ? record.requirements
+    : [
+        'Must use AlgoKit Utils TypeScript SDK',
+        'Must successfully sign and send a 0-ALGO transaction',
+        'Code must have 100% test coverage using vitest',
+      ],
+  aiCriteria:
+    'Claude API will clone the submitted GitHub repo, check for algokit-utils in package.json, run "npm test", and statically analyze the code for a wallet connection method.',
+  blockchainState: record.state,
+  hasSubmission: record.hasSubmission,
+  isAiRunning: record.isAiRunning,
+  aiScore: record.aiScore,
+  aiVerdict:
+    record.aiVerdict && record.aiVerdict.score !== null
+      ? {
+          matched: record.aiVerdict.matched,
+          gaps: record.aiVerdict.gaps,
+          score: record.aiVerdict.score,
+        }
+      : null,
+});
+
 // ─── Component ───────────────────────────────────────────────────────────
 const Freelance = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('client');
   const [escrow, setEscrow] = useState<EscrowData>(INITIAL_ESCROW);
+  const [escrowId, setEscrowId] = useState('');
+  const [isBusy, setIsBusy] = useState(false);
+  const [serverMessage, setServerMessage] = useState('');
+  const [serverError, setServerError] = useState('');
 
   // Freelancer form
   const [repoUrl, setRepoUrl] = useState('');
   const [liveUrl, setLiveUrl] = useState('');
   const [notes, setNotes] = useState('');
+
+  const syncEscrow = async (id: string) => {
+    const record = await getEscrow(id);
+    setEscrow(mapEscrowToView(record));
+    setEscrowId(record.escrowId);
+    localStorage.setItem(DEMO_ESCROW_STORAGE_KEY, record.escrowId);
+  };
+
+  useEffect(() => {
+    const boot = async () => {
+      setServerError('');
+      setServerMessage('');
+
+      try {
+        const storedId = localStorage.getItem(DEMO_ESCROW_STORAGE_KEY);
+        if (storedId) {
+          await syncEscrow(storedId);
+          return;
+        }
+
+        const created = await createEscrow({
+          sellerAddress: 'DEMO-SELLER-ALGO-ADDR',
+          buyerAddress: 'DEMO-BUYER-ALGO-ADDR',
+          itemName: INITIAL_ESCROW.title,
+          escrowType: 'FREELANCE',
+          amount: INITIAL_ESCROW.amount,
+          currency: INITIAL_ESCROW.currency,
+          deadlineHours: 72,
+          requirements: INITIAL_ESCROW.requirements,
+        });
+
+        setEscrow(mapEscrowToView(created));
+        setEscrowId(created.escrowId);
+        localStorage.setItem(DEMO_ESCROW_STORAGE_KEY, created.escrowId);
+        setServerMessage('Escrow session initialized from server.');
+      } catch (err: any) {
+        setServerError(err?.response?.data?.message || 'Failed to initialize escrow session from server.');
+      }
+    };
+
+    void boot();
+  }, []);
 
   // ─── Derive UI status from blockchain state + off-chain data ─────────
   const deriveUIStatus = (): DerivedUIStatus => {
@@ -90,47 +180,118 @@ const Freelance = () => {
   const uiStatus = deriveUIStatus();
 
   // ─── Actions ─────────────────────────────────────────────────────────
-  const handleFundEscrow = () => {
-    setEscrow((prev) => ({ ...prev, blockchainState: 'FUNDED' }));
+  const handleFundEscrow = async () => {
+    if (!escrowId || isBusy) return;
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const actor = localStorage.getItem('algoescrow_activeAddress') || 'DEMO-BUYER-ALGO-ADDR';
+      const updated = await fundEscrow(escrowId, { buyerAddress: actor, amount: escrow.amount });
+      setEscrow(mapEscrowToView(updated));
+      setServerMessage(`Escrow funded. Tx: ${updated.txIds.fund}`);
+    } catch (err: any) {
+      setServerError(err?.response?.data?.message || 'Failed to fund escrow.');
+    } finally {
+      setIsBusy(false);
+    }
   };
 
-  const handleSubmitWork = () => {
-    setEscrow((prev) => ({ ...prev, hasSubmission: true, isAiRunning: true }));
-    // Simulate AI agent verification (3 seconds)
-    setTimeout(() => {
-      const score = 88;
-      const verdict = {
-        score,
-        matched: ['AlgoKit Utils TS integrated', '0-ALGO transaction signed', 'Pera Wallet session managed'],
-        gaps: ['Test coverage at 85% instead of 100%'],
-      };
-      setEscrow((prev) => ({ ...prev, isAiRunning: false, aiScore: score, aiVerdict: verdict }));
-      // AI approved → move to COMPLETED
-      if (score >= 75) {
-        setTimeout(() => {
-          setEscrow((prev) => ({ ...prev, blockchainState: 'COMPLETED' }));
-        }, 1500);
-      } else {
-        setTimeout(() => {
-          setEscrow((prev) => ({ ...prev, blockchainState: 'DISPUTED' }));
-        }, 1500);
-      }
-    }, 3000);
+  const handleSubmitWork = async () => {
+    if (!escrowId || isBusy) return;
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const actor = localStorage.getItem('algoescrow_activeAddress') || escrow.freelancerAddr;
+      await submitEscrowWork(escrowId, {
+        sellerAddress: actor,
+        githubUrl: repoUrl,
+        liveUrl,
+        notes,
+        description: notes || 'Deliverables submitted from workflows page',
+      });
+      const verified = await verifyEscrow(escrowId);
+      setEscrow(mapEscrowToView(verified));
+      setServerMessage(
+        verified.state === 'COMPLETED'
+          ? `AI verification approved. Tx: ${verified.txIds.release || verified.txIds.verify}`
+          : `AI verification flagged dispute. Tx: ${verified.txIds.dispute || verified.txIds.verify}`,
+      );
+    } catch (err: any) {
+      setServerError(err?.response?.data?.message || 'Failed to submit and verify deliverables.');
+    } finally {
+      setIsBusy(false);
+    }
   };
 
-  const handleClientConfirm = () => {
-    setEscrow((prev) => ({ ...prev, blockchainState: 'COMPLETED' }));
+  const handleClientConfirm = async () => {
+    if (!escrowId || isBusy) return;
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const actor = localStorage.getItem('algoescrow_activeAddress') || 'DEMO-BUYER-ALGO-ADDR';
+      const updated =
+        escrow.blockchainState === 'DISPUTED'
+          ? await resolveEscrow(escrowId, { releaseToSeller: true, actor })
+          : await deliverEscrow(escrowId, { actor });
+
+      setEscrow(mapEscrowToView(updated));
+      setServerMessage(`Escrow moved to ${updated.state}. Tx: ${updated.txIds.release}`);
+    } catch (err: any) {
+      setServerError(err?.response?.data?.message || 'Failed to confirm delivery.');
+    } finally {
+      setIsBusy(false);
+    }
   };
 
-  const handleClientDispute = () => {
-    setEscrow((prev) => ({ ...prev, blockchainState: 'DISPUTED' }));
+  const handleClientDispute = async () => {
+    if (!escrowId || isBusy) return;
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const actor = localStorage.getItem('algoescrow_activeAddress') || 'DEMO-BUYER-ALGO-ADDR';
+      const updated = await disputeEscrow(escrowId, { actor });
+      setEscrow(mapEscrowToView(updated));
+      setServerMessage(`Dispute raised. Tx: ${updated.txIds.dispute}`);
+    } catch (err: any) {
+      setServerError(err?.response?.data?.message || 'Failed to raise dispute.');
+    } finally {
+      setIsBusy(false);
+    }
   };
 
-  const handleResetDemo = () => {
-    setEscrow(INITIAL_ESCROW);
-    setRepoUrl('');
-    setLiveUrl('');
-    setNotes('');
+  const handleResetDemo = async () => {
+    if (isBusy) return;
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const created = await createEscrow({
+        sellerAddress: 'DEMO-SELLER-ALGO-ADDR',
+        buyerAddress: 'DEMO-BUYER-ALGO-ADDR',
+        itemName: INITIAL_ESCROW.title,
+        escrowType: 'FREELANCE',
+        amount: INITIAL_ESCROW.amount,
+        currency: INITIAL_ESCROW.currency,
+        deadlineHours: 72,
+        requirements: INITIAL_ESCROW.requirements,
+      });
+
+      setEscrow(mapEscrowToView(created));
+      setEscrowId(created.escrowId);
+      localStorage.setItem(DEMO_ESCROW_STORAGE_KEY, created.escrowId);
+      setRepoUrl('');
+      setLiveUrl('');
+      setNotes('');
+      setServerMessage('Demo reset complete with a fresh server escrow.');
+    } catch (err: any) {
+      setServerError(err?.response?.data?.message || 'Failed to reset demo escrow.');
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   // ─── Badge Renderers ─────────────────────────────────────────────────
@@ -225,6 +386,26 @@ const Freelance = () => {
           </button>
         </div>
       </div>
+
+      {(serverMessage || serverError || isBusy) && (
+        <div className="mb-6 space-y-2">
+          {isBusy ? (
+            <div className="rounded-lg border border-[#a855f7]/30 bg-[#a855f7]/10 px-4 py-2 text-xs font-semibold text-[#c084fc]">
+              Syncing escrow state with server...
+            </div>
+          ) : null}
+          {serverMessage ? (
+            <div className="rounded-lg border border-[#a855f7]/20 bg-[#a855f7]/10 px-4 py-2 text-xs text-[#d9c5ff]">
+              {serverMessage}
+            </div>
+          ) : null}
+          {serverError ? (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300">
+              {serverError}
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* ═══ Gig Header ═══ */}
       <div className="bg-[#141418] border border-white/5 rounded-2xl p-8 mb-8 relative overflow-hidden">
