@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
+import { Types } from 'mongoose';
 import Escrow, { EscrowState, EscrowType } from '../models/Escrow';
 import TxRegistry from '../models/TxRegistry';
 import {
@@ -30,8 +31,8 @@ const resolveReceiverAddress = (escrow: any) => {
   const escrowAddress = sanitizeAddress(escrow?.appAddress);
   const envAddress = sanitizeAddress(process.env.ESCROW_RECEIVER_ADDRESS);
 
-  if (escrowAddress && isValidAlgorandAddress(escrowAddress)) return escrowAddress;
   if (envAddress && isValidAlgorandAddress(envAddress)) return envAddress;
+  if (escrowAddress && isValidAlgorandAddress(escrowAddress)) return escrowAddress;
   return '';
 };
 
@@ -74,7 +75,11 @@ const applyTransition = (
 };
 
 const resolveEscrow = async (id: string) => {
-  return Escrow.findOne({ $or: [{ _id: id }, { escrowId: id }] });
+  if (Types.ObjectId.isValid(id)) {
+    return Escrow.findOne({ $or: [{ _id: id }, { escrowId: id }] });
+  }
+
+  return Escrow.findOne({ escrowId: id });
 };
 
 const ensureTxIds = (escrow: any) => {
@@ -122,6 +127,7 @@ const toSpecEscrow = (escrow: any) => {
     roundsRemaining: publicView.roundsRemaining,
     aiScore: escrow.aiScore,
     aiVerdictNote: escrow.aiVerdict?.verdict || '',
+    aiRawOutput: escrow.aiRawOutput || '',
     loraUrl: toLoraAppUrl(escrow.appId),
     txHistory: escrow.activityLogs || [],
   };
@@ -291,6 +297,12 @@ router.post('/:id/fund', async (req, res) => {
       return res.status(500).json({ message: 'Escrow receiver address is missing/invalid. Set a valid testnet ESCROW_RECEIVER_ADDRESS in server/.env' });
     }
 
+    // Auto-heal stale receiver values from old demo sessions/config changes.
+    if (escrow.appAddress !== receiverAddress) {
+      escrow.appAddress = receiverAddress;
+      await escrow.save();
+    }
+
     if (!Number.isInteger(escrow.amount) || escrow.amount <= 0) {
       return res.status(400).json({ message: 'Escrow amount must be a positive integer in microALGO' });
     }
@@ -452,6 +464,14 @@ const submitWorkHandler = async (req: any, res: any) => {
 
     escrow.hasSubmission = true;
     escrow.deliverablesHash = deliverablesHash;
+    escrow.submission = {
+      githubUrl,
+      description,
+      liveUrl,
+      notes,
+      screenshotsUrls: Array.isArray(screenshotsUrls) ? screenshotsUrls : [],
+      submittedAt: new Date(),
+    };
     ensureTxIds(escrow).submit = txId;
     appendActivity(
       escrow,
@@ -491,9 +511,10 @@ const aiVerifyHandler = async (req: any, res: any) => {
 
     const aiResult = await evaluateDeliverables({
       requirements: escrow.requirements || [],
-      githubUrl: req.body.githubUrl,
-      description: req.body.description,
-      screenshotsUrls: req.body.screenshotsUrls,
+      githubUrl: req.body.githubUrl || escrow.submission?.githubUrl,
+      liveUrl: req.body.liveUrl || escrow.submission?.liveUrl,
+      description: req.body.description || escrow.submission?.description || escrow.submission?.notes,
+      screenshotsUrls: req.body.screenshotsUrls || escrow.submission?.screenshotsUrls || [],
     });
 
     const verifyTxId = makeMockTxId('verify');
@@ -501,52 +522,39 @@ const aiVerifyHandler = async (req: any, res: any) => {
     escrow.aiScore = aiResult.score;
     ensureTxIds(escrow).verify = verifyTxId;
 
-    const approved = aiResult.recommendation === 'RELEASE';
     escrow.aiVerdict = {
       score: aiResult.score,
       matched: aiResult.matched_criteria,
       gaps: aiResult.missing_criteria,
-      verdict: aiResult.verdict,
+      verdict: aiResult.analysis || aiResult.verdict,
       recommendation: aiResult.recommendation,
     };
+    escrow.aiRawOutput = aiResult.rawOutput || '';
 
-    if (approved) {
-      const releaseTxId = makeMockTxId('release');
-      ensureTxIds(escrow).release = releaseTxId;
-      applyTransition(
-        escrow,
-        ['FUNDED'],
-        'COMPLETED',
-        'AI_VERIFY_APPROVED',
-        'ai-oracle',
-        releaseTxId,
-        `AI score ${aiResult.score} approved; funds released`,
-      );
-      await dispatchStateWebhook(escrow, releaseTxId);
-    } else {
-      const disputeTxId = makeMockTxId('dispute');
-      ensureTxIds(escrow).dispute = disputeTxId;
-      applyTransition(
-        escrow,
-        ['FUNDED'],
-        'DISPUTED',
-        'AI_VERIFY_REJECTED',
-        'ai-oracle',
-        disputeTxId,
-        `AI score ${aiResult.score} below threshold; moved to dispute`,
-      );
-      await dispatchStateWebhook(escrow, disputeTxId);
-    }
+    appendActivity(
+      escrow,
+      'AI_ANALYSIS',
+      'FUNDED',
+      'FUNDED',
+      'ai-oracle',
+      verifyTxId,
+      `AI analysis completed with score ${aiResult.score} and recommendation ${aiResult.recommendation}`,
+    );
 
     await escrow.save();
+    await dispatchStateWebhook(escrow, verifyTxId);
 
     if (isSpecResponse(req)) {
       return res.json({
         score: aiResult.score,
         matched_criteria: aiResult.matched_criteria,
         missing_criteria: aiResult.missing_criteria,
+        analysis: aiResult.analysis || aiResult.verdict,
         verdict: aiResult.verdict,
         recommendation: aiResult.recommendation,
+        raw_output: aiResult.rawOutput || '',
+        transferActionRequired: true,
+        nextActions: ['confirm-delivery', 'raise-dispute'],
         escrow: toSpecEscrow(escrow.toObject()),
       });
     }
@@ -607,6 +615,32 @@ router.post('/:id/dispute', async (req, res) => {
     return res.json(escrow);
   } catch (err: any) {
     return res.status(500).json({ message: 'Failed to raise dispute', error: err.message });
+  }
+});
+
+router.post('/:id/withdraw-dispute', async (req, res) => {
+  try {
+    const escrow = await resolveEscrow(req.params.id);
+    if (!escrow) return res.status(404).json({ message: 'Escrow not found' });
+
+    const { actor = '' } = req.body;
+    const txId = makeMockTxId('withdraw-dispute');
+
+    applyTransition(
+      escrow,
+      ['DISPUTED'],
+      'FUNDED',
+      'WITHDRAW_DISPUTE',
+      actor,
+      txId,
+      'Dispute withdrawn by user; escrow remains funded and locked',
+    );
+
+    await escrow.save();
+    await dispatchStateWebhook(escrow, txId);
+    return res.json(escrow);
+  } catch (err: any) {
+    return res.status(500).json({ message: 'Failed to withdraw dispute', error: err.message });
   }
 });
 

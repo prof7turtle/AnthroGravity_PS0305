@@ -52,10 +52,19 @@ const escrowSchema = new mongoose.Schema(
     requirements: [{ type: String }],
     requirementsHash: { type: String, default: '' },
     deliverablesHash: { type: String, default: '' },
+    submission: {
+      githubUrl: { type: String, default: '' },
+      description: { type: String, default: '' },
+      liveUrl: { type: String, default: '' },
+      notes: { type: String, default: '' },
+      screenshotsUrls: [{ type: String }],
+      submittedAt: { type: Date, default: null },
+    },
 
     hasSubmission: { type: Boolean, default: false },
     isAiRunning: { type: Boolean, default: false },
     aiScore: { type: Number, default: null },
+    aiRawOutput: { type: String, default: '' },
     aiVerdict: {
       score: { type: Number, default: null },
       matched: [{ type: String }],

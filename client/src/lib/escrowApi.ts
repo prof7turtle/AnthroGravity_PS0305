@@ -19,6 +19,7 @@ export interface EscrowRecord {
   hasSubmission: boolean;
   isAiRunning: boolean;
   aiScore: number | null;
+  aiRawOutput?: string;
   aiVerdict: {
     score: number | null;
     matched: string[];
@@ -105,6 +106,11 @@ export const deliverEscrow = async (id: string, payload?: { actor?: string }) =>
 
 export const disputeEscrow = async (id: string, payload?: { actor?: string }) => {
   const res = await axios.post<EscrowRecord>(`${API_BASE}/api/escrow/${id}/dispute`, payload ?? {});
+  return res.data;
+};
+
+export const withdrawDisputeEscrow = async (id: string, payload?: { actor?: string }) => {
+  const res = await axios.post<EscrowRecord>(`${API_BASE}/api/escrow/${id}/withdraw-dispute`, payload ?? {});
   return res.data;
 };
 
