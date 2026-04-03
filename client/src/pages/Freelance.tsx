@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
+import algosdk from 'algosdk';
+import { useWallet } from '@txnlab/use-wallet-react';
 import {
+  confirmEscrowFund,
   createEscrow,
   deliverEscrow,
   disputeEscrow,
-  fundEscrow,
   getEscrow,
+  requestFundEscrowTransaction,
   resolveEscrow,
   submitEscrowWork,
   verifyEscrow,
@@ -102,6 +105,7 @@ const mapEscrowToView = (record: EscrowRecord): EscrowData => ({
 
 // ─── Component ───────────────────────────────────────────────────────────
 const Freelance = () => {
+  const { activeAddress, signTransactions, algodClient } = useWallet();
   const [viewMode, setViewMode] = useState<ViewMode>('client');
   const [escrow, setEscrow] = useState<EscrowData>(INITIAL_ESCROW);
   const [escrowId, setEscrowId] = useState('');
@@ -127,15 +131,24 @@ const Freelance = () => {
       setServerMessage('');
 
       try {
-        const storedId = localStorage.getItem(DEMO_ESCROW_STORAGE_KEY);
-        if (storedId) {
-          await syncEscrow(storedId);
+        if (!activeAddress) {
+          setServerMessage('Connect Pera wallet to initialize a buyer-locked escrow session.');
           return;
         }
 
+        const storedId = localStorage.getItem(DEMO_ESCROW_STORAGE_KEY);
+        if (storedId) {
+          try {
+            await syncEscrow(storedId);
+            return;
+          } catch {
+            localStorage.removeItem(DEMO_ESCROW_STORAGE_KEY);
+          }
+        }
+
         const created = await createEscrow({
-          sellerAddress: 'DEMO-SELLER-ALGO-ADDR',
-          buyerAddress: 'DEMO-BUYER-ALGO-ADDR',
+          sellerAddress: activeAddress,
+          buyerAddress: activeAddress,
           itemName: INITIAL_ESCROW.title,
           escrowType: 'FREELANCE',
           amount: INITIAL_ESCROW.amount,
@@ -154,7 +167,7 @@ const Freelance = () => {
     };
 
     void boot();
-  }, []);
+  }, [activeAddress]);
 
   // ─── Derive UI status from blockchain state + off-chain data ─────────
   const deriveUIStatus = (): DerivedUIStatus => {
@@ -182,14 +195,36 @@ const Freelance = () => {
   // ─── Actions ─────────────────────────────────────────────────────────
   const handleFundEscrow = async () => {
     if (!escrowId || isBusy) return;
+
+    if (!activeAddress) {
+      setServerError('Connect your Pera wallet before funding escrow.');
+      return;
+    }
+
     setIsBusy(true);
     setServerError('');
 
     try {
-      const actor = localStorage.getItem('algoescrow_activeAddress') || 'DEMO-BUYER-ALGO-ADDR';
-      const updated = await fundEscrow(escrowId, { buyerAddress: actor, amount: escrow.amount });
+      const actor = activeAddress;
+      const prepared = await requestFundEscrowTransaction(escrowId, { buyerAddress: actor });
+
+      const unsignedTransactionBytes = Uint8Array.from(atob(prepared.unsignedTransaction), (char) => char.charCodeAt(0));
+      const unsignedTransaction = algosdk.decodeUnsignedTransaction(unsignedTransactionBytes);
+      const signedTransactions = await signTransactions([unsignedTransaction]);
+      const signedBlob = signedTransactions[0];
+
+      if (!signedBlob) {
+        throw new Error('Wallet did not return a signed transaction.');
+      }
+
+      const sendResult = await algodClient.sendRawTransaction(signedBlob).do();
+      await algosdk.waitForConfirmation(algodClient, sendResult.txid, 4);
+
+      const updated = await confirmEscrowFund(escrowId, { txId: sendResult.txid });
       setEscrow(mapEscrowToView(updated));
-      setServerMessage(`Escrow funded. Tx: ${updated.txIds.fund}`);
+      setServerMessage(
+        `Escrow funded and verified. Tx: ${updated.txIds.fund} | Explorer: https://testnet.algoexplorer.io/tx/${updated.txIds.fund}`,
+      );
     } catch (err: any) {
       setServerError(err?.response?.data?.message || 'Failed to fund escrow.');
     } finally {
@@ -265,13 +300,19 @@ const Freelance = () => {
 
   const handleResetDemo = async () => {
     if (isBusy) return;
+
+    if (!activeAddress) {
+      setServerError('Connect Pera wallet before resetting escrow demo.');
+      return;
+    }
+
     setIsBusy(true);
     setServerError('');
 
     try {
       const created = await createEscrow({
-        sellerAddress: 'DEMO-SELLER-ALGO-ADDR',
-        buyerAddress: 'DEMO-BUYER-ALGO-ADDR',
+        sellerAddress: activeAddress,
+        buyerAddress: activeAddress,
         itemName: INITIAL_ESCROW.title,
         escrowType: 'FREELANCE',
         amount: INITIAL_ESCROW.amount,

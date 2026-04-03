@@ -48,6 +48,14 @@ export interface EscrowRecord {
   }>;
 }
 
+export interface FundPreparationResponse {
+  escrowId: string;
+  receiver: string;
+  amount: number;
+  network: 'testnet';
+  unsignedTransaction: string;
+}
+
 export const createEscrow = async (payload: {
   sellerAddress: string;
   buyerAddress?: string;
@@ -67,8 +75,13 @@ export const getEscrow = async (id: string) => {
   return res.data;
 };
 
-export const fundEscrow = async (id: string, payload: { buyerAddress: string; amount?: number }) => {
-  const res = await axios.post<EscrowRecord>(`${API_BASE}/api/escrow/${id}/fund`, payload);
+export const requestFundEscrowTransaction = async (id: string, payload: { buyerAddress: string }) => {
+  const res = await axios.post<FundPreparationResponse>(`${API_BASE}/api/escrow/${id}/fund`, payload);
+  return res.data;
+};
+
+export const confirmEscrowFund = async (id: string, payload: { txId: string }) => {
+  const res = await axios.post<EscrowRecord>(`${API_BASE}/api/escrow/${id}/confirm-fund`, payload);
   return res.data;
 };
 
