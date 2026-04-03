@@ -9,7 +9,7 @@
 
 import { describe, test, expect, beforeEach } from 'vitest'
 import { algorandFixture } from '@algorandfoundation/algokit-utils/testing'
-import { AlgorandClient } from '@algorandfoundation/algokit-utils'
+import { AlgorandClient, algos } from '@algorandfoundation/algokit-utils'
 import algosdk from 'algosdk'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -32,12 +32,12 @@ describe('EscrowContract', () => {
     await fixture.beforeEach()
     algorand = fixture.algorand
 
-    // Fund test accounts
-    buyer = await fixture.context.generateAccount({ initialFunds: (10n * MICRO_ALGO) })
-    seller = await fixture.context.generateAccount({ initialFunds: (10n * MICRO_ALGO) })
-    oracle = await fixture.context.generateAccount({ initialFunds: (2n * MICRO_ALGO) })
-    arbiter = await fixture.context.generateAccount({ initialFunds: (2n * MICRO_ALGO) })
-    treasury = await fixture.context.generateAccount({ initialFunds: (1n * MICRO_ALGO) })
+    // Fund test accounts using canonical AlgoAmount helpers
+    buyer = await fixture.context.generateAccount({ initialFunds: algos(10) })
+    seller = await fixture.context.generateAccount({ initialFunds: algos(10) })
+    oracle = await fixture.context.generateAccount({ initialFunds: algos(2) })
+    arbiter = await fixture.context.generateAccount({ initialFunds: algos(2) })
+    treasury = await fixture.context.generateAccount({ initialFunds: algos(1) })
   })
 
   // ────────────────────────────────────────────────────────────────────────────
