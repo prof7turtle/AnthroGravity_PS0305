@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
+import { useWallet } from '@txnlab/use-wallet-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import WalletConnectButton from './WalletConnectButton';
 
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { activeWallet } = useWallet();
   const { isAuthenticated, logout } = useAuth();
 
   const navLinks = [
@@ -15,14 +18,22 @@ const Navbar = () => {
     { name: 'API Integration', path: '/api' },
   ];
 
-  const handleAuthAction = () => {
-    if (isAuthenticated) {
+  const handleLoginRedirect = () => {
+    navigate('/login');
+  };
+
+  const handleLogout = async () => {
+    try {
+      if (activeWallet?.isConnected) {
+        await activeWallet.disconnect();
+      }
+      localStorage.removeItem('algoescrow_activeAddress');
+    } catch {
+      // Keep sign out flow resilient even if wallet disconnect fails.
+    } finally {
       logout();
       navigate('/');
-      return;
     }
-
-    navigate('/login');
   };
 
   useEffect(() => {
@@ -57,17 +68,27 @@ const Navbar = () => {
           ))}
         </ul>
 
-        <div className="hidden items-center md:flex">
-          <button
-            onClick={handleAuthAction}
-            className={`rounded-lg py-2.5 px-6 text-[0.95rem] font-semibold transition-all duration-200 ${
-              isAuthenticated
-                ? 'border border-white/20 bg-transparent text-white hover:border-white/35 hover:bg-white/10'
-                : 'border border-[#a855f7]/30 bg-linear-to-br from-[#a855f7] to-[#7c3aed] text-white hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(168,85,247,0.35)]'
-            }`}
-          >
-            {isAuthenticated ? 'Sign Out' : 'Connect Wallet'}
-          </button>
+        <div className="hidden items-center gap-3 md:flex">
+          {isAuthenticated ? (
+            <>
+              <WalletConnectButton
+                className="rounded-lg border border-[#a855f7]/30 bg-linear-to-br from-[#a855f7] to-[#7c3aed] px-4 py-2.5 text-[0.9rem] font-semibold text-white transition-all duration-200 hover:shadow-[0_8px_30px_rgba(168,85,247,0.35)]"
+              />
+              <button
+                onClick={handleLogout}
+                className="rounded-lg border border-white/20 bg-transparent py-2.5 px-4 text-[0.9rem] font-semibold text-white transition-all duration-200 hover:border-white/35 hover:bg-white/10"
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleLoginRedirect}
+              className="rounded-lg border border-[#a855f7]/30 bg-linear-to-br from-[#a855f7] to-[#7c3aed] py-2.5 px-6 text-[0.95rem] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(168,85,247,0.35)]"
+            >
+              Login
+            </button>
+          )}
         </div>
 
         <button
@@ -118,16 +139,26 @@ const Navbar = () => {
             ))}
           </ul>
 
-          <button
-            onClick={handleAuthAction}
-            className={`w-full rounded-lg py-2.5 px-4 text-sm font-semibold transition-all duration-200 ${
-              isAuthenticated
-                ? 'border border-white/20 bg-transparent text-white hover:border-white/35 hover:bg-white/10'
-                : 'border border-[#a855f7]/30 bg-linear-to-br from-[#a855f7] to-[#7c3aed] text-white hover:shadow-[0_8px_30px_rgba(168,85,247,0.35)]'
-            }`}
-          >
-            {isAuthenticated ? 'Sign Out' : 'Connect Wallet'}
-          </button>
+          {isAuthenticated ? (
+            <div className="flex flex-col gap-2">
+              <WalletConnectButton
+                className="w-full rounded-lg border border-[#a855f7]/30 bg-linear-to-br from-[#a855f7] to-[#7c3aed] py-2.5 px-4 text-sm font-semibold text-white transition-all duration-200 hover:shadow-[0_8px_30px_rgba(168,85,247,0.35)]"
+              />
+              <button
+                onClick={handleLogout}
+                className="w-full rounded-lg border border-white/20 bg-transparent py-2.5 px-4 text-sm font-semibold text-white transition-all duration-200 hover:border-white/35 hover:bg-white/10"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleLoginRedirect}
+              className="w-full rounded-lg border border-[#a855f7]/30 bg-linear-to-br from-[#a855f7] to-[#7c3aed] py-2.5 px-4 text-sm font-semibold text-white transition-all duration-200 hover:shadow-[0_8px_30px_rgba(168,85,247,0.35)]"
+            >
+              Login
+            </button>
+          )}
         </div>
       )}
     </nav>
