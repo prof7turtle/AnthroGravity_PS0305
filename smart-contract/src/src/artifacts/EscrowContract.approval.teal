@@ -1,0 +1,1450 @@
+#pragma version 11
+#pragma typetrack false
+
+// @algorandfoundation/algorand-typescript/arc4/index.d.ts::Contract.approvalProgram() -> uint64:
+main:
+    intcblock 0 1 2 8 10000
+    bytecblock "state" "" "amount" "buyer" "seller" "deadline_round" "platform_fee_bps" "escrow_type" "platform_treasury" "deliverables_hash" "arbiter" "item_name" "ai_score" "ai_verdict_note" "created_round" "requirements_hash" "dispute_raised_by"
+    txn ApplicationID
+    bnz main_after_if_else@2
+    // src/escrow_contract.algo.ts:47
+    // buyer = GlobalState<Account>({ initialValue: Account() })
+    bytec_3 // "buyer"
+    global ZeroAddress
+    app_global_put
+    // src/escrow_contract.algo.ts:48
+    // seller = GlobalState<Account>({ initialValue: Account() })
+    bytec 4 // "seller"
+    global ZeroAddress
+    app_global_put
+    // src/escrow_contract.algo.ts:51
+    // item_name = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 11 // "item_name"
+    bytec_1 // ""
+    app_global_put
+    // src/escrow_contract.algo.ts:52
+    // escrow_type = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 7 // "escrow_type"
+    intc_0 // 0
+    app_global_put
+    // src/escrow_contract.algo.ts:53
+    // amount = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_2 // "amount"
+    intc_0 // 0
+    app_global_put
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    intc_0 // 0
+    app_global_put
+    // src/escrow_contract.algo.ts:57
+    // created_round = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 14 // "created_round"
+    intc_0 // 0
+    app_global_put
+    // src/escrow_contract.algo.ts:58
+    // deadline_round = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 5 // "deadline_round"
+    intc_0 // 0
+    app_global_put
+    // src/escrow_contract.algo.ts:61
+    // platform_fee_bps = GlobalState<uint64>({ initialValue: 50 as uint64 }) // 0.5%
+    bytec 6 // "platform_fee_bps"
+    pushint 50 // 50
+    app_global_put
+    // src/escrow_contract.algo.ts:62
+    // platform_treasury = GlobalState<Account>({ initialValue: Account() })
+    bytec 8 // "platform_treasury"
+    global ZeroAddress
+    app_global_put
+    // src/escrow_contract.algo.ts:65
+    // requirements_hash = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 15 // "requirements_hash"
+    bytec_1 // ""
+    app_global_put
+    // src/escrow_contract.algo.ts:66
+    // deliverables_hash = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 9 // "deliverables_hash"
+    bytec_1 // ""
+    app_global_put
+    // src/escrow_contract.algo.ts:67
+    // ai_score = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 12 // "ai_score"
+    intc_0 // 0
+    app_global_put
+    // src/escrow_contract.algo.ts:68
+    // ai_verdict_note = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 13 // "ai_verdict_note"
+    bytec_1 // ""
+    app_global_put
+    // src/escrow_contract.algo.ts:71
+    // arbiter = GlobalState<Account>({ initialValue: Account() })
+    bytec 10 // "arbiter"
+    global ZeroAddress
+    app_global_put
+    // src/escrow_contract.algo.ts:72
+    // dispute_raised_by = GlobalState<Account>({ initialValue: Account() })
+    bytec 16 // "dispute_raised_by"
+    global ZeroAddress
+    app_global_put
+    // src/escrow_contract.algo.ts:75
+    // last_txn_note = GlobalState<bytes>({ initialValue: Bytes('') })
+    pushbytes "last_txn_note"
+    bytec_1 // ""
+    app_global_put
+
+main_after_if_else@2:
+    // src/escrow_contract.algo.ts:45
+    // export class EscrowContract extends Contract {
+    txn OnCompletion
+    !
+    assert // OnCompletion must be NoOp
+    txn ApplicationID
+    bz main_create_NoOp@14
+    pushbytess 0x51531b75 0x37c1e36e 0xc1512dc3 0xe05e0d5e 0x337d8150 0x1d6fc550 0xfe90b7cd 0x0e442df6 // method "fund(pay)void", method "confirmDelivery()void", method "requestRefund()void", method "raiseDispute()void", method "arbitrate(bool)void", method "submitDeliverables(byte[])void", method "aiVerdict(bool,uint64,byte[])void", method "getDetails()(address,address,uint64,uint64,uint64,byte[],uint64,uint64,uint64,uint64,byte[],byte[],address)"
+    txna ApplicationArgs 0
+    match fund confirmDelivery requestRefund raiseDispute arbitrate submitDeliverables aiVerdict getDetails
+    err
+
+main_create_NoOp@14:
+    // src/escrow_contract.algo.ts:45
+    // export class EscrowContract extends Contract {
+    pushbytes 0x72ee2270 // method "createApplication(address,byte[],uint64,uint64,byte[],uint64,address,address)void"
+    txna ApplicationArgs 0
+    match createApplication
+    err
+
+
+// src/escrow_contract.algo.ts::EscrowContract.createApplication[routing]() -> void:
+createApplication:
+    // src/escrow_contract.algo.ts:94
+    // @abimethod({ allowActions: 'NoOp', onCreate: 'require' })
+    txna ApplicationArgs 1
+    dup
+    len
+    pushint 32 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_2 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    txna ApplicationArgs 3
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    txna ApplicationArgs 4
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    txna ApplicationArgs 5
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_2 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    txna ApplicationArgs 6
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    txna ApplicationArgs 7
+    dup
+    len
+    pushint 32 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 8
+    dup
+    len
+    pushint 32 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // src/escrow_contract.algo.ts:48
+    // seller = GlobalState<Account>({ initialValue: Account() })
+    bytec 4 // "seller"
+    // src/escrow_contract.algo.ts:105
+    // this.seller.value = seller
+    uncover 8
+    app_global_put
+    // src/escrow_contract.algo.ts:51
+    // item_name = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 11 // "item_name"
+    // src/escrow_contract.algo.ts:106
+    // this.item_name.value = itemName
+    uncover 7
+    app_global_put
+    // src/escrow_contract.algo.ts:52
+    // escrow_type = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 7 // "escrow_type"
+    // src/escrow_contract.algo.ts:107
+    // this.escrow_type.value = escrowType
+    uncover 6
+    app_global_put
+    // src/escrow_contract.algo.ts:58
+    // deadline_round = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 5 // "deadline_round"
+    // src/escrow_contract.algo.ts:108
+    // this.deadline_round.value = deadlineRound
+    uncover 5
+    app_global_put
+    // src/escrow_contract.algo.ts:65
+    // requirements_hash = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 15 // "requirements_hash"
+    // src/escrow_contract.algo.ts:109
+    // this.requirements_hash.value = requirementsHash
+    uncover 4
+    app_global_put
+    // src/escrow_contract.algo.ts:61
+    // platform_fee_bps = GlobalState<uint64>({ initialValue: 50 as uint64 }) // 0.5%
+    bytec 6 // "platform_fee_bps"
+    // src/escrow_contract.algo.ts:110
+    // this.platform_fee_bps.value = feeBps
+    uncover 3
+    app_global_put
+    // src/escrow_contract.algo.ts:62
+    // platform_treasury = GlobalState<Account>({ initialValue: Account() })
+    bytec 8 // "platform_treasury"
+    // src/escrow_contract.algo.ts:111
+    // this.platform_treasury.value = treasury
+    uncover 2
+    app_global_put
+    // src/escrow_contract.algo.ts:71
+    // arbiter = GlobalState<Account>({ initialValue: Account() })
+    bytec 10 // "arbiter"
+    // src/escrow_contract.algo.ts:112
+    // this.arbiter.value = arbiterAddr
+    swap
+    app_global_put
+    // src/escrow_contract.algo.ts:57
+    // created_round = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 14 // "created_round"
+    // src/escrow_contract.algo.ts:113
+    // this.created_round.value = Global.round
+    global Round
+    app_global_put
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:114
+    // this.state.value = STATE_CREATED
+    intc_0 // 0
+    app_global_put
+    // src/escrow_contract.algo.ts:94
+    // @abimethod({ allowActions: 'NoOp', onCreate: 'require' })
+    intc_1 // 1
+    return
+
+
+// src/escrow_contract.algo.ts::EscrowContract.fund[routing]() -> void:
+fund:
+    // src/escrow_contract.algo.ts:123
+    // @abimethod({ allowActions: 'NoOp' })
+    txn GroupIndex
+    intc_1 // 1
+    -
+    dup
+    gtxns TypeEnum
+    intc_1 // pay
+    ==
+    assert // transaction type is pay
+    // src/escrow_contract.algo.ts:126
+    // assert(this.state.value === STATE_CREATED, 'Escrow must be in CREATED state')
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:126
+    // assert(this.state.value === STATE_CREATED, 'Escrow must be in CREATED state')
+    app_global_get_ex
+    assert // check GlobalState exists
+    !
+    assert // Escrow must be in CREATED state
+    // src/escrow_contract.algo.ts:129
+    // assert(Global.round <= this.deadline_round.value, 'Escrow has expired')
+    global Round
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:58
+    // deadline_round = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 5 // "deadline_round"
+    // src/escrow_contract.algo.ts:129
+    // assert(Global.round <= this.deadline_round.value, 'Escrow has expired')
+    app_global_get_ex
+    assert // check GlobalState exists
+    <=
+    assert // Escrow has expired
+    // src/escrow_contract.algo.ts:133
+    // payment.receiver === Global.currentApplicationAddress,
+    dup
+    gtxns Receiver
+    global CurrentApplicationAddress
+    ==
+    // src/escrow_contract.algo.ts:132-135
+    // assert(
+    //   payment.receiver === Global.currentApplicationAddress,
+    //   'Payment receiver must be the escrow contract address',
+    // )
+    assert // Payment receiver must be the escrow contract address
+    // src/escrow_contract.algo.ts:138
+    // assert(payment.sender === Txn.sender, 'Payment sender must match app call sender')
+    dup
+    gtxns Sender
+    txn Sender
+    ==
+    assert // Payment sender must match app call sender
+    // src/escrow_contract.algo.ts:141
+    // assert(payment.amount > (0 as uint64), 'Payment amount must be greater than 0')
+    gtxns Amount
+    dup
+    assert // Payment amount must be greater than 0
+    // src/escrow_contract.algo.ts:47
+    // buyer = GlobalState<Account>({ initialValue: Account() })
+    bytec_3 // "buyer"
+    // src/escrow_contract.algo.ts:144
+    // this.buyer.value = Txn.sender
+    txn Sender
+    app_global_put
+    // src/escrow_contract.algo.ts:53
+    // amount = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_2 // "amount"
+    // src/escrow_contract.algo.ts:145
+    // this.amount.value = payment.amount
+    swap
+    app_global_put
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:146
+    // this.state.value = STATE_FUNDED
+    intc_1 // 1
+    app_global_put
+    // src/escrow_contract.algo.ts:123
+    // @abimethod({ allowActions: 'NoOp' })
+    intc_1 // 1
+    return
+
+
+// src/escrow_contract.algo.ts::EscrowContract.confirmDelivery[routing]() -> void:
+confirmDelivery:
+    bytec_1 // ""
+    // src/escrow_contract.algo.ts:158
+    // assert(this.state.value === STATE_FUNDED, 'Escrow must be in FUNDED state')
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:158
+    // assert(this.state.value === STATE_FUNDED, 'Escrow must be in FUNDED state')
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_1 // 1
+    ==
+    assert // Escrow must be in FUNDED state
+    // src/escrow_contract.algo.ts:162
+    // Txn.sender === this.buyer.value || Txn.sender === Global.creatorAddress,
+    txn Sender
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:47
+    // buyer = GlobalState<Account>({ initialValue: Account() })
+    bytec_3 // "buyer"
+    // src/escrow_contract.algo.ts:162
+    // Txn.sender === this.buyer.value || Txn.sender === Global.creatorAddress,
+    app_global_get_ex
+    assert // check GlobalState exists
+    ==
+    bnz confirmDelivery_bool_true@3
+    txn Sender
+    global CreatorAddress
+    ==
+    bz confirmDelivery_bool_false@4
+
+confirmDelivery_bool_true@3:
+    intc_1 // 1
+
+confirmDelivery_bool_merge@5:
+    // src/escrow_contract.algo.ts:161-164
+    // assert(
+    //   Txn.sender === this.buyer.value || Txn.sender === Global.creatorAddress,
+    //   'Only buyer or oracle can confirm delivery',
+    // )
+    assert // Only buyer or oracle can confirm delivery
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:166
+    // this.state.value = STATE_DELIVERED
+    intc_2 // 2
+    app_global_put
+    // src/escrow_contract.algo.ts:169
+    // const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:53
+    // amount = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_2 // "amount"
+    // src/escrow_contract.algo.ts:169
+    // const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:61
+    // platform_fee_bps = GlobalState<uint64>({ initialValue: 50 as uint64 }) // 0.5%
+    bytec 6 // "platform_fee_bps"
+    // src/escrow_contract.algo.ts:169
+    // const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+    app_global_get_ex
+    assert // check GlobalState exists
+    dig 1
+    *
+    intc 4 // 10000
+    /
+    dup
+    bury 3
+    // src/escrow_contract.algo.ts:170
+    // const sellerAmount = (this.amount.value - feeAmount) as uint64
+    swap
+    dig 1
+    -
+    // src/escrow_contract.algo.ts:173-179
+    // itxn
+    //   .payment({
+    //     receiver: this.seller.value,
+    //     amount: sellerAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_begin
+    // src/escrow_contract.algo.ts:175
+    // receiver: this.seller.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:48
+    // seller = GlobalState<Account>({ initialValue: Account() })
+    bytec 4 // "seller"
+    // src/escrow_contract.algo.ts:175
+    // receiver: this.seller.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    itxn_field Receiver
+    itxn_field Amount
+    // src/escrow_contract.algo.ts:173-178
+    // itxn
+    //   .payment({
+    //     receiver: this.seller.value,
+    //     amount: sellerAmount,
+    //     fee: 0 as uint64,
+    //   })
+    intc_1 // 1
+    itxn_field TypeEnum
+    // src/escrow_contract.algo.ts:177
+    // fee: 0 as uint64,
+    intc_0 // 0
+    itxn_field Fee
+    // src/escrow_contract.algo.ts:173-179
+    // itxn
+    //   .payment({
+    //     receiver: this.seller.value,
+    //     amount: sellerAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_submit
+    // src/escrow_contract.algo.ts:182
+    // if (feeAmount > (0 as uint64)) {
+    bz confirmDelivery_after_if_else@9
+    // src/escrow_contract.algo.ts:183-189
+    // itxn
+    //   .payment({
+    //     receiver: this.platform_treasury.value,
+    //     amount: feeAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_begin
+    // src/escrow_contract.algo.ts:185
+    // receiver: this.platform_treasury.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:62
+    // platform_treasury = GlobalState<Account>({ initialValue: Account() })
+    bytec 8 // "platform_treasury"
+    // src/escrow_contract.algo.ts:185
+    // receiver: this.platform_treasury.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    dig 1
+    itxn_field Amount
+    itxn_field Receiver
+    // src/escrow_contract.algo.ts:183-188
+    // itxn
+    //   .payment({
+    //     receiver: this.platform_treasury.value,
+    //     amount: feeAmount,
+    //     fee: 0 as uint64,
+    //   })
+    intc_1 // 1
+    itxn_field TypeEnum
+    // src/escrow_contract.algo.ts:187
+    // fee: 0 as uint64,
+    intc_0 // 0
+    itxn_field Fee
+    // src/escrow_contract.algo.ts:183-189
+    // itxn
+    //   .payment({
+    //     receiver: this.platform_treasury.value,
+    //     amount: feeAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_submit
+
+confirmDelivery_after_if_else@9:
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:192
+    // this.state.value = STATE_COMPLETED
+    pushint 3 // 3
+    app_global_put
+    // src/escrow_contract.algo.ts:155
+    // @abimethod({ allowActions: 'NoOp' })
+    intc_1 // 1
+    return
+
+confirmDelivery_bool_false@4:
+    intc_0 // 0
+    b confirmDelivery_bool_merge@5
+
+
+// src/escrow_contract.algo.ts::EscrowContract.requestRefund[routing]() -> void:
+requestRefund:
+    // src/escrow_contract.algo.ts:204
+    // assert(this.state.value === STATE_FUNDED, 'Escrow must be in FUNDED state')
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:204
+    // assert(this.state.value === STATE_FUNDED, 'Escrow must be in FUNDED state')
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_1 // 1
+    ==
+    assert // Escrow must be in FUNDED state
+    // src/escrow_contract.algo.ts:207
+    // assert(Txn.sender === this.buyer.value, 'Only buyer can request a refund')
+    txn Sender
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:47
+    // buyer = GlobalState<Account>({ initialValue: Account() })
+    bytec_3 // "buyer"
+    // src/escrow_contract.algo.ts:207
+    // assert(Txn.sender === this.buyer.value, 'Only buyer can request a refund')
+    app_global_get_ex
+    assert // check GlobalState exists
+    swap
+    dig 1
+    ==
+    assert // Only buyer can request a refund
+    // src/escrow_contract.algo.ts:210
+    // assert(Global.round > this.deadline_round.value, 'Deadline has not passed yet')
+    global Round
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:58
+    // deadline_round = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 5 // "deadline_round"
+    // src/escrow_contract.algo.ts:210
+    // assert(Global.round > this.deadline_round.value, 'Deadline has not passed yet')
+    app_global_get_ex
+    assert // check GlobalState exists
+    >
+    assert // Deadline has not passed yet
+    // src/escrow_contract.algo.ts:213-219
+    // itxn
+    //   .payment({
+    //     receiver: this.buyer.value,
+    //     amount: this.amount.value,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_begin
+    // src/escrow_contract.algo.ts:216
+    // amount: this.amount.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:53
+    // amount = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_2 // "amount"
+    // src/escrow_contract.algo.ts:216
+    // amount: this.amount.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    itxn_field Amount
+    itxn_field Receiver
+    // src/escrow_contract.algo.ts:213-218
+    // itxn
+    //   .payment({
+    //     receiver: this.buyer.value,
+    //     amount: this.amount.value,
+    //     fee: 0 as uint64,
+    //   })
+    intc_1 // 1
+    itxn_field TypeEnum
+    // src/escrow_contract.algo.ts:217
+    // fee: 0 as uint64,
+    intc_0 // 0
+    itxn_field Fee
+    // src/escrow_contract.algo.ts:213-219
+    // itxn
+    //   .payment({
+    //     receiver: this.buyer.value,
+    //     amount: this.amount.value,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_submit
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:221
+    // this.state.value = STATE_REFUNDED
+    pushint 5 // 5
+    app_global_put
+    // src/escrow_contract.algo.ts:201
+    // @abimethod({ allowActions: 'NoOp' })
+    intc_1 // 1
+    return
+
+
+// src/escrow_contract.algo.ts::EscrowContract.raiseDispute[routing]() -> void:
+raiseDispute:
+    // src/escrow_contract.algo.ts:233
+    // assert(this.state.value === STATE_FUNDED, 'Escrow must be in FUNDED state')
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:233
+    // assert(this.state.value === STATE_FUNDED, 'Escrow must be in FUNDED state')
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_1 // 1
+    ==
+    assert // Escrow must be in FUNDED state
+    // src/escrow_contract.algo.ts:236
+    // assert(Txn.sender === this.buyer.value, 'Only buyer can raise a dispute')
+    txn Sender
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:47
+    // buyer = GlobalState<Account>({ initialValue: Account() })
+    bytec_3 // "buyer"
+    // src/escrow_contract.algo.ts:236
+    // assert(Txn.sender === this.buyer.value, 'Only buyer can raise a dispute')
+    app_global_get_ex
+    assert // check GlobalState exists
+    ==
+    assert // Only buyer can raise a dispute
+    // src/escrow_contract.algo.ts:239
+    // assert(Global.round <= this.deadline_round.value, 'Cannot dispute after deadline')
+    global Round
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:58
+    // deadline_round = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 5 // "deadline_round"
+    // src/escrow_contract.algo.ts:239
+    // assert(Global.round <= this.deadline_round.value, 'Cannot dispute after deadline')
+    app_global_get_ex
+    assert // check GlobalState exists
+    <=
+    assert // Cannot dispute after deadline
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:241
+    // this.state.value = STATE_DISPUTED
+    pushint 4 // 4
+    app_global_put
+    // src/escrow_contract.algo.ts:72
+    // dispute_raised_by = GlobalState<Account>({ initialValue: Account() })
+    bytec 16 // "dispute_raised_by"
+    // src/escrow_contract.algo.ts:242
+    // this.dispute_raised_by.value = Txn.sender
+    txn Sender
+    app_global_put
+    // src/escrow_contract.algo.ts:230
+    // @abimethod({ allowActions: 'NoOp' })
+    intc_1 // 1
+    return
+
+
+// src/escrow_contract.algo.ts::EscrowContract.arbitrate[routing]() -> void:
+arbitrate:
+    bytec_1 // ""
+    // src/escrow_contract.algo.ts:252
+    // @abimethod({ allowActions: 'NoOp' })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 1
+    ==
+    assert // invalid number of bytes for arc4.bool
+    intc_0 // 0
+    getbit
+    // src/escrow_contract.algo.ts:255
+    // assert(this.state.value === STATE_DISPUTED, 'Escrow must be in DISPUTED state')
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:255
+    // assert(this.state.value === STATE_DISPUTED, 'Escrow must be in DISPUTED state')
+    app_global_get_ex
+    assert // check GlobalState exists
+    pushint 4 // 4
+    ==
+    assert // Escrow must be in DISPUTED state
+    // src/escrow_contract.algo.ts:258
+    // assert(Txn.sender === this.arbiter.value, 'Only the arbiter can resolve a dispute')
+    txn Sender
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:71
+    // arbiter = GlobalState<Account>({ initialValue: Account() })
+    bytec 10 // "arbiter"
+    // src/escrow_contract.algo.ts:258
+    // assert(Txn.sender === this.arbiter.value, 'Only the arbiter can resolve a dispute')
+    app_global_get_ex
+    assert // check GlobalState exists
+    ==
+    assert // Only the arbiter can resolve a dispute
+    // src/escrow_contract.algo.ts:260
+    // if (releaseToSeller) {
+    bz arbitrate_else_body@7
+    // src/escrow_contract.algo.ts:262
+    // const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:53
+    // amount = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_2 // "amount"
+    // src/escrow_contract.algo.ts:262
+    // const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:61
+    // platform_fee_bps = GlobalState<uint64>({ initialValue: 50 as uint64 }) // 0.5%
+    bytec 6 // "platform_fee_bps"
+    // src/escrow_contract.algo.ts:262
+    // const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+    app_global_get_ex
+    assert // check GlobalState exists
+    dig 1
+    *
+    intc 4 // 10000
+    /
+    dup
+    bury 3
+    // src/escrow_contract.algo.ts:263
+    // const sellerAmount = (this.amount.value - feeAmount) as uint64
+    swap
+    dig 1
+    -
+    // src/escrow_contract.algo.ts:265-271
+    // itxn
+    //   .payment({
+    //     receiver: this.seller.value,
+    //     amount: sellerAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_begin
+    // src/escrow_contract.algo.ts:267
+    // receiver: this.seller.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:48
+    // seller = GlobalState<Account>({ initialValue: Account() })
+    bytec 4 // "seller"
+    // src/escrow_contract.algo.ts:267
+    // receiver: this.seller.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    itxn_field Receiver
+    itxn_field Amount
+    // src/escrow_contract.algo.ts:265-270
+    // itxn
+    //   .payment({
+    //     receiver: this.seller.value,
+    //     amount: sellerAmount,
+    //     fee: 0 as uint64,
+    //   })
+    intc_1 // 1
+    itxn_field TypeEnum
+    // src/escrow_contract.algo.ts:269
+    // fee: 0 as uint64,
+    intc_0 // 0
+    itxn_field Fee
+    // src/escrow_contract.algo.ts:265-271
+    // itxn
+    //   .payment({
+    //     receiver: this.seller.value,
+    //     amount: sellerAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_submit
+    // src/escrow_contract.algo.ts:273
+    // if (feeAmount > (0 as uint64)) {
+    bz arbitrate_after_if_else@6
+    // src/escrow_contract.algo.ts:274-280
+    // itxn
+    //   .payment({
+    //     receiver: this.platform_treasury.value,
+    //     amount: feeAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_begin
+    // src/escrow_contract.algo.ts:276
+    // receiver: this.platform_treasury.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:62
+    // platform_treasury = GlobalState<Account>({ initialValue: Account() })
+    bytec 8 // "platform_treasury"
+    // src/escrow_contract.algo.ts:276
+    // receiver: this.platform_treasury.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    dig 1
+    itxn_field Amount
+    itxn_field Receiver
+    // src/escrow_contract.algo.ts:274-279
+    // itxn
+    //   .payment({
+    //     receiver: this.platform_treasury.value,
+    //     amount: feeAmount,
+    //     fee: 0 as uint64,
+    //   })
+    intc_1 // 1
+    itxn_field TypeEnum
+    // src/escrow_contract.algo.ts:278
+    // fee: 0 as uint64,
+    intc_0 // 0
+    itxn_field Fee
+    // src/escrow_contract.algo.ts:274-280
+    // itxn
+    //   .payment({
+    //     receiver: this.platform_treasury.value,
+    //     amount: feeAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_submit
+
+arbitrate_after_if_else@6:
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:283
+    // this.state.value = STATE_COMPLETED
+    pushint 3 // 3
+    app_global_put
+
+arbitrate_after_if_else@9:
+    // src/escrow_contract.algo.ts:252
+    // @abimethod({ allowActions: 'NoOp' })
+    intc_1 // 1
+    return
+
+arbitrate_else_body@7:
+    // src/escrow_contract.algo.ts:286-292
+    // itxn
+    //   .payment({
+    //     receiver: this.buyer.value,
+    //     amount: this.amount.value,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_begin
+    // src/escrow_contract.algo.ts:288
+    // receiver: this.buyer.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:47
+    // buyer = GlobalState<Account>({ initialValue: Account() })
+    bytec_3 // "buyer"
+    // src/escrow_contract.algo.ts:288
+    // receiver: this.buyer.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:289
+    // amount: this.amount.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:53
+    // amount = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_2 // "amount"
+    // src/escrow_contract.algo.ts:289
+    // amount: this.amount.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    itxn_field Amount
+    itxn_field Receiver
+    // src/escrow_contract.algo.ts:286-291
+    // itxn
+    //   .payment({
+    //     receiver: this.buyer.value,
+    //     amount: this.amount.value,
+    //     fee: 0 as uint64,
+    //   })
+    intc_1 // 1
+    itxn_field TypeEnum
+    // src/escrow_contract.algo.ts:290
+    // fee: 0 as uint64,
+    intc_0 // 0
+    itxn_field Fee
+    // src/escrow_contract.algo.ts:286-292
+    // itxn
+    //   .payment({
+    //     receiver: this.buyer.value,
+    //     amount: this.amount.value,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_submit
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:294
+    // this.state.value = STATE_REFUNDED
+    pushint 5 // 5
+    app_global_put
+    b arbitrate_after_if_else@9
+
+
+// src/escrow_contract.algo.ts::EscrowContract.submitDeliverables[routing]() -> void:
+submitDeliverables:
+    // src/escrow_contract.algo.ts:304
+    // @abimethod({ allowActions: 'NoOp' })
+    txna ApplicationArgs 1
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_2 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    // src/escrow_contract.algo.ts:307
+    // assert(this.state.value === STATE_FUNDED, 'Escrow must be in FUNDED state')
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:307
+    // assert(this.state.value === STATE_FUNDED, 'Escrow must be in FUNDED state')
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_1 // 1
+    ==
+    assert // Escrow must be in FUNDED state
+    // src/escrow_contract.algo.ts:310
+    // assert(Txn.sender === this.seller.value, 'Only the seller can submit deliverables')
+    txn Sender
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:48
+    // seller = GlobalState<Account>({ initialValue: Account() })
+    bytec 4 // "seller"
+    // src/escrow_contract.algo.ts:310
+    // assert(Txn.sender === this.seller.value, 'Only the seller can submit deliverables')
+    app_global_get_ex
+    assert // check GlobalState exists
+    ==
+    assert // Only the seller can submit deliverables
+    // src/escrow_contract.algo.ts:313
+    // assert(this.escrow_type.value === TYPE_FREELANCE, 'Only freelance escrows accept deliverables')
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:52
+    // escrow_type = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 7 // "escrow_type"
+    // src/escrow_contract.algo.ts:313
+    // assert(this.escrow_type.value === TYPE_FREELANCE, 'Only freelance escrows accept deliverables')
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_2 // 2
+    ==
+    assert // Only freelance escrows accept deliverables
+    // src/escrow_contract.algo.ts:66
+    // deliverables_hash = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 9 // "deliverables_hash"
+    // src/escrow_contract.algo.ts:316
+    // this.deliverables_hash.value = deliverablesHash
+    swap
+    app_global_put
+    // src/escrow_contract.algo.ts:304
+    // @abimethod({ allowActions: 'NoOp' })
+    intc_1 // 1
+    return
+
+
+// src/escrow_contract.algo.ts::EscrowContract.aiVerdict[routing]() -> void:
+aiVerdict:
+    bytec_1 // ""
+    // src/escrow_contract.algo.ts:327
+    // @abimethod({ allowActions: 'NoOp' })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 1
+    ==
+    assert // invalid number of bytes for arc4.bool
+    intc_0 // 0
+    getbit
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    txna ApplicationArgs 3
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_2 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    // src/escrow_contract.algo.ts:330
+    // assert(Txn.sender === Global.creatorAddress, 'Only the backend oracle can submit AI verdicts')
+    txn Sender
+    global CreatorAddress
+    ==
+    assert // Only the backend oracle can submit AI verdicts
+    // src/escrow_contract.algo.ts:333
+    // assert(this.state.value === STATE_FUNDED, 'Escrow must be in FUNDED state')
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:333
+    // assert(this.state.value === STATE_FUNDED, 'Escrow must be in FUNDED state')
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_1 // 1
+    ==
+    assert // Escrow must be in FUNDED state
+    // src/escrow_contract.algo.ts:336
+    // assert(this.escrow_type.value === TYPE_FREELANCE, 'Only freelance escrows support AI verdict')
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:52
+    // escrow_type = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 7 // "escrow_type"
+    // src/escrow_contract.algo.ts:336
+    // assert(this.escrow_type.value === TYPE_FREELANCE, 'Only freelance escrows support AI verdict')
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_2 // 2
+    ==
+    assert // Only freelance escrows support AI verdict
+    // src/escrow_contract.algo.ts:339
+    // assert(this.deliverables_hash.value !== Bytes(''), 'Deliverables must be submitted before AI verdict')
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:66
+    // deliverables_hash = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 9 // "deliverables_hash"
+    // src/escrow_contract.algo.ts:339
+    // assert(this.deliverables_hash.value !== Bytes(''), 'Deliverables must be submitted before AI verdict')
+    app_global_get_ex
+    assert // check GlobalState exists
+    bytec_1 // ""
+    !=
+    assert // Deliverables must be submitted before AI verdict
+    // src/escrow_contract.algo.ts:67
+    // ai_score = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 12 // "ai_score"
+    // src/escrow_contract.algo.ts:342
+    // this.ai_score.value = score
+    uncover 2
+    app_global_put
+    // src/escrow_contract.algo.ts:68
+    // ai_verdict_note = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 13 // "ai_verdict_note"
+    // src/escrow_contract.algo.ts:343
+    // this.ai_verdict_note.value = verdictNote
+    swap
+    app_global_put
+    // src/escrow_contract.algo.ts:345
+    // if (approved) {
+    bz aiVerdict_else_body@7
+    // src/escrow_contract.algo.ts:347
+    // const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:53
+    // amount = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_2 // "amount"
+    // src/escrow_contract.algo.ts:347
+    // const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:61
+    // platform_fee_bps = GlobalState<uint64>({ initialValue: 50 as uint64 }) // 0.5%
+    bytec 6 // "platform_fee_bps"
+    // src/escrow_contract.algo.ts:347
+    // const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+    app_global_get_ex
+    assert // check GlobalState exists
+    dig 1
+    *
+    intc 4 // 10000
+    /
+    dup
+    bury 3
+    // src/escrow_contract.algo.ts:348
+    // const sellerAmount = (this.amount.value - feeAmount) as uint64
+    swap
+    dig 1
+    -
+    // src/escrow_contract.algo.ts:350-356
+    // itxn
+    //   .payment({
+    //     receiver: this.seller.value,
+    //     amount: sellerAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_begin
+    // src/escrow_contract.algo.ts:352
+    // receiver: this.seller.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:48
+    // seller = GlobalState<Account>({ initialValue: Account() })
+    bytec 4 // "seller"
+    // src/escrow_contract.algo.ts:352
+    // receiver: this.seller.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    itxn_field Receiver
+    itxn_field Amount
+    // src/escrow_contract.algo.ts:350-355
+    // itxn
+    //   .payment({
+    //     receiver: this.seller.value,
+    //     amount: sellerAmount,
+    //     fee: 0 as uint64,
+    //   })
+    intc_1 // 1
+    itxn_field TypeEnum
+    // src/escrow_contract.algo.ts:354
+    // fee: 0 as uint64,
+    intc_0 // 0
+    itxn_field Fee
+    // src/escrow_contract.algo.ts:350-356
+    // itxn
+    //   .payment({
+    //     receiver: this.seller.value,
+    //     amount: sellerAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_submit
+    // src/escrow_contract.algo.ts:358
+    // if (feeAmount > (0 as uint64)) {
+    bz aiVerdict_after_if_else@6
+    // src/escrow_contract.algo.ts:359-365
+    // itxn
+    //   .payment({
+    //     receiver: this.platform_treasury.value,
+    //     amount: feeAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_begin
+    // src/escrow_contract.algo.ts:361
+    // receiver: this.platform_treasury.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:62
+    // platform_treasury = GlobalState<Account>({ initialValue: Account() })
+    bytec 8 // "platform_treasury"
+    // src/escrow_contract.algo.ts:361
+    // receiver: this.platform_treasury.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    dig 1
+    itxn_field Amount
+    itxn_field Receiver
+    // src/escrow_contract.algo.ts:359-364
+    // itxn
+    //   .payment({
+    //     receiver: this.platform_treasury.value,
+    //     amount: feeAmount,
+    //     fee: 0 as uint64,
+    //   })
+    intc_1 // 1
+    itxn_field TypeEnum
+    // src/escrow_contract.algo.ts:363
+    // fee: 0 as uint64,
+    intc_0 // 0
+    itxn_field Fee
+    // src/escrow_contract.algo.ts:359-365
+    // itxn
+    //   .payment({
+    //     receiver: this.platform_treasury.value,
+    //     amount: feeAmount,
+    //     fee: 0 as uint64,
+    //   })
+    //   .submit()
+    itxn_submit
+
+aiVerdict_after_if_else@6:
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:368
+    // this.state.value = STATE_COMPLETED
+    pushint 3 // 3
+    app_global_put
+
+aiVerdict_after_if_else@8:
+    // src/escrow_contract.algo.ts:327
+    // @abimethod({ allowActions: 'NoOp' })
+    intc_1 // 1
+    return
+
+aiVerdict_else_body@7:
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:371
+    // this.state.value = STATE_DISPUTED
+    pushint 4 // 4
+    app_global_put
+    b aiVerdict_after_if_else@8
+
+
+// src/escrow_contract.algo.ts::EscrowContract.getDetails[routing]() -> void:
+getDetails:
+    // src/escrow_contract.algo.ts:398
+    // this.buyer.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:47
+    // buyer = GlobalState<Account>({ initialValue: Account() })
+    bytec_3 // "buyer"
+    // src/escrow_contract.algo.ts:398
+    // this.buyer.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:399
+    // this.seller.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:48
+    // seller = GlobalState<Account>({ initialValue: Account() })
+    bytec 4 // "seller"
+    // src/escrow_contract.algo.ts:399
+    // this.seller.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:400
+    // this.amount.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:53
+    // amount = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_2 // "amount"
+    // src/escrow_contract.algo.ts:400
+    // this.amount.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:401
+    // this.state.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:56
+    // state = GlobalState<uint64>({ initialValue: STATE_CREATED })
+    bytec_0 // "state"
+    // src/escrow_contract.algo.ts:401
+    // this.state.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:402
+    // this.escrow_type.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:52
+    // escrow_type = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 7 // "escrow_type"
+    // src/escrow_contract.algo.ts:402
+    // this.escrow_type.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:403
+    // this.item_name.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:51
+    // item_name = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 11 // "item_name"
+    // src/escrow_contract.algo.ts:403
+    // this.item_name.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:404
+    // this.deadline_round.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:58
+    // deadline_round = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 5 // "deadline_round"
+    // src/escrow_contract.algo.ts:404
+    // this.deadline_round.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:405
+    // Global.round,
+    global Round
+    // src/escrow_contract.algo.ts:406
+    // this.ai_score.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:67
+    // ai_score = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec 12 // "ai_score"
+    // src/escrow_contract.algo.ts:406
+    // this.ai_score.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:407
+    // this.platform_fee_bps.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:61
+    // platform_fee_bps = GlobalState<uint64>({ initialValue: 50 as uint64 }) // 0.5%
+    bytec 6 // "platform_fee_bps"
+    // src/escrow_contract.algo.ts:407
+    // this.platform_fee_bps.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:408
+    // this.deliverables_hash.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:66
+    // deliverables_hash = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 9 // "deliverables_hash"
+    // src/escrow_contract.algo.ts:408
+    // this.deliverables_hash.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:409
+    // this.ai_verdict_note.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:68
+    // ai_verdict_note = GlobalState<bytes>({ initialValue: Bytes('') })
+    bytec 13 // "ai_verdict_note"
+    // src/escrow_contract.algo.ts:409
+    // this.ai_verdict_note.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:410
+    // this.arbiter.value,
+    intc_0 // 0
+    // src/escrow_contract.algo.ts:71
+    // arbiter = GlobalState<Account>({ initialValue: Account() })
+    bytec 10 // "arbiter"
+    // src/escrow_contract.algo.ts:410
+    // this.arbiter.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_contract.algo.ts:381
+    // @abimethod({ allowActions: 'NoOp', readonly: true })
+    uncover 12
+    uncover 12
+    concat
+    uncover 11
+    itob
+    concat
+    uncover 10
+    itob
+    concat
+    uncover 9
+    itob
+    concat
+    dig 8
+    len
+    itob
+    extract 6 2
+    uncover 9
+    concat
+    swap
+    pushbytes 0x009e
+    concat
+    dig 1
+    len
+    pushint 158 // 158
+    +
+    uncover 9
+    itob
+    uncover 2
+    swap
+    concat
+    uncover 8
+    itob
+    concat
+    uncover 7
+    itob
+    concat
+    uncover 6
+    itob
+    concat
+    dig 5
+    len
+    itob
+    extract 6 2
+    uncover 6
+    concat
+    dig 2
+    itob
+    extract 6 2
+    uncover 2
+    swap
+    concat
+    dig 1
+    len
+    uncover 3
+    +
+    dig 5
+    len
+    itob
+    extract 6 2
+    uncover 6
+    concat
+    swap
+    itob
+    extract 6 2
+    uncover 2
+    swap
+    concat
+    uncover 4
+    concat
+    uncover 3
+    concat
+    uncover 2
+    concat
+    swap
+    concat
+    pushbytes 0x151f7c75
+    swap
+    concat
+    log
+    intc_1 // 1
+    return

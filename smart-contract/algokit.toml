@@ -12,12 +12,14 @@ environment_secrets = [
 ]
 
 [project.deploy.localnet]
+command = "npx ts-node src/deploy.ts"
 algod_url = "http://localhost:4001"
 algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 indexer_url = "http://localhost:8980"
 kmd_url = "http://localhost:4002"
 
 [project.deploy.testnet]
+command = "npx ts-node src/deploy.ts"
 algod_url = "https://testnet-api.algonode.cloud"
 indexer_url = "https://testnet-idx.algonode.cloud"
 

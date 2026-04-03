@@ -19,9 +19,10 @@
     "@algorandfoundation/algokit-utils": "^7.0.0",
     "@algorandfoundation/algorand-typescript-testing": "^1.1.0",
     "@algorandfoundation/puya-ts": "^1.1.0",
-    "algosdk": "^2.9.0",
+    "algosdk": "^3.0.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.0.0",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8",
-    "dotenv": "^16.0.0"
+    "vitest": "^2.1.8"
   }
 }

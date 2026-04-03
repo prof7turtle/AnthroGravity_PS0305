@@ -50,10 +50,11 @@ async function deploy() {
     deployerSigner = algosdk.makeBasicAccountTransactionSigner(deployerAccount)
     
     console.log(`Deployer Address: ${deployerAddr}`)
+    console.log(`✅ Using your wallet for deployment`)
     
     // Check deployer balance
     const accountInfo = await algorand.client.algod.accountInformation(deployerAddr).do()
-    const balance = accountInfo.amount / 1_000_000
+    const balance = Number(accountInfo.amount) / 1_000_000
     console.log(`Deployer Balance: ${balance} ALGO`)
     
     if (balance < 1) {
