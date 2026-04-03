@@ -54,7 +54,7 @@ const Marketplace = () => {
     <div className="w-full bg-[#0a0a0c] min-h-screen text-white font-['Inter']">
       
       {/* ESCROW.COM STYLE HERO WIDGET */}
-      <section className="bg-[#141418] border-b border-white/5 py-16 px-6">
+      <section className="bg-[#141418] border-b border-white/5 pt-8 pb-16 px-6">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-4 font-['Outfit']">
             With AlgoEscrow you can buy and sell anything safely without the risk of chargebacks.

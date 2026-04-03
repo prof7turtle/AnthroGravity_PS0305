@@ -5,7 +5,7 @@ const LandingPage = () => {
     <div className="flex flex-col w-full">      
       <main className="flex-1">
         {/* HERO SECTION */}
-        <section className="relative min-h-screen flex items-center justify-between pt-32 pb-16 px-6 max-w-7xl mx-auto overflow-hidden">
+        <section className="relative min-h-screen flex items-center justify-between pt-8 pb-16 px-6 max-w-7xl mx-auto overflow-hidden">
           {/* Background Glow */}
           <div className="absolute top-[20%] left-1/2 w-[60vw] h-[60vw] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle,rgba(0,255,136,0.08)_0%,rgba(0,212,255,0.05)_40%,rgba(10,10,12,0)_70%)] pointer-events-none -z-10"></div>
           

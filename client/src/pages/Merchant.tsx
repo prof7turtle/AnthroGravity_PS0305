@@ -16,7 +16,7 @@ const Merchant = () => {
     <div className="w-full bg-[#0a0a0c] min-h-screen text-white font-['Inter']">
       
       {/* Merchant Header */}
-      <div className="bg-[#141418] border-b border-white/5 pt-32 pb-8 px-6 relative overflow-hidden">
+      <div className="bg-[#141418] border-b border-white/5 pt-8 pb-8 px-6 relative overflow-hidden">
         {/* subtle background glow */}
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#00ff88]/5 rounded-full blur-[120px] pointer-events-none"></div>
         
