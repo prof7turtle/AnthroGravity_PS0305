@@ -51,7 +51,7 @@ const LandingPage = () => {
 
                 {/* Description */}
                 <p className="text-lg md:text-xl text-[#8a8a98] leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0">
-                  Secure funds, verify work with AI, and release payments instantly — all on Algorand with 2.8s finality.
+                  No need to trust the other party, Secure funds, verify work with AI, and release payments instantly.
                 </p>
 
                 {/* CTA */}

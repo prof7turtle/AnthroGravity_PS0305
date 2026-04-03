@@ -14,8 +14,8 @@
   "type": "commonjs",
   "dependencies": {
     "@algorandfoundation/algokit-utils": "^7.0.0",
-    "@anthropic-ai/sdk": "^0.32.1",
     "algosdk": "^2.9.0",
+    "axios": "^1.14.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.0",

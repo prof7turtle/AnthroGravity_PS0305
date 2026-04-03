@@ -94,6 +94,7 @@ npm start
 | `ALGORAND_NETWORK` | Network (localnet/testnet) | `localnet` |
 | `ESCROW_FACTORY_APP_ID` | Deployed factory App ID | `1198` |
 | `ESCROW_CONTRACT_TEMPLATE_APP_ID` | Template App ID | `1197` |
+| `ESCROW_MNEMONIC` | Escrow custody mnemonic for backend-signed on-chain actions | Optional on localnet |
 | `CLAUDE_API_KEY` | For AI verification | Optional |
 
 ## 🧪 Testing
@@ -153,7 +154,7 @@ CREATED (0) → FUNDED (1) → DELIVERED (2) → COMPLETED (3)
 
 - Never commit `.env` to git
 - Use separate wallets for TestNet/MainNet
-- Oracle mnemonic required for delivery confirmations
+- Escrow custody mnemonic required for backend on-chain refund/arbitration on TestNet/MainNet
 - CORS configured for frontend origin
 
 ## 📝 Development Notes

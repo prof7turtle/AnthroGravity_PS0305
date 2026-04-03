@@ -59,6 +59,21 @@ class AlgorandService {
    */
   async initializeOracle(): Promise<void> {
     const network = process.env.ALGORAND_NETWORK || 'localnet';
+    const configuredMnemonic = String(process.env.ESCROW_MNEMONIC || process.env.ORACLE_MNEMONIC || '').trim();
+    const hasConfiguredMnemonic = configuredMnemonic.length > 0 && !/REPLACE_WITH_/i.test(configuredMnemonic);
+
+    const loadMnemonicAccount = (): boolean => {
+      if (!hasConfiguredMnemonic) return false;
+
+      try {
+        this.oracleAccount = algosdk.mnemonicToSecretKey(configuredMnemonic);
+        console.log(`✅ Escrow custody account from mnemonic: ${this.oracleAccount.addr}`);
+        return true;
+      } catch (error) {
+        console.error('❌ Invalid ESCROW_MNEMONIC/ORACLE_MNEMONIC format:', error);
+        return false;
+      }
+    };
     
     if (network === 'localnet') {
       try {
@@ -70,14 +85,13 @@ class AlgorandService {
         console.log(`✅ Oracle account from KMD: ${kmdAccount.addr}`);
       } catch (error) {
         console.error('❌ Failed to get KMD account:', error);
+        if (!loadMnemonicAccount()) {
+          console.warn('⚠️  On-chain refund is not configured. Set ESCROW_MNEMONIC for the escrow custody account in server/.env');
+        }
       }
     } else {
-      const mnemonic = process.env.ORACLE_MNEMONIC;
-      if (mnemonic) {
-        this.oracleAccount = algosdk.mnemonicToSecretKey(mnemonic);
-        console.log(`✅ Oracle account from mnemonic: ${this.oracleAccount.addr}`);
-      } else {
-        console.warn('⚠️  Oracle mnemonic not set');
+      if (!loadMnemonicAccount()) {
+        console.warn('⚠️  On-chain refund is not configured. Set ESCROW_MNEMONIC for the escrow custody account in server/.env');
       }
     }
   }
@@ -480,3 +494,103 @@ class AlgorandService {
 }
 
 export const algorandService = new AlgorandService();
+
+type FundingTransaction = {
+  txId: string;
+  sender: string;
+  receiver: string;
+  amount: number;
+  confirmedRound?: number;
+};
+
+const getNetworkLabel = () => process.env.ALGORAND_NETWORK || 'localnet';
+
+export const toLoraAppUrl = (appId?: number | null): string => {
+  if (!appId || appId <= 0) return '';
+  return `https://lora.algokit.io/${getNetworkLabel()}/application/${appId}`;
+};
+
+export const toTransactionExplorerUrl = (txId?: string): string => {
+  if (!txId) return '';
+  return `https://lora.algokit.io/${getNetworkLabel()}/transaction/${txId}`;
+};
+
+export const prepareFundingTransaction = async (input: {
+  sender: string;
+  receiver: string;
+  amount: number;
+  escrowId?: string;
+}) => {
+  const params = await algorandService.getSuggestedParams();
+  const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+    from: input.sender,
+    to: input.receiver,
+    amount: input.amount,
+    note: new TextEncoder().encode(`escrow:${input.escrowId || ''}`),
+    suggestedParams: params,
+  });
+
+  return {
+    txId: txn.txID(),
+    unsignedTransaction: Buffer.from(algosdk.encodeUnsignedTransaction(txn)).toString('base64'),
+  };
+};
+
+export const verifyFundingTransaction = async (txId: string): Promise<FundingTransaction> => {
+  const response: any = await algorandService.getIndexerClient().lookupTransactionByID(txId).do();
+  const txn = response?.transaction;
+  if (!txn) throw new Error(`Transaction ${txId} not found`);
+
+  const payment = txn['payment-transaction'];
+  if (!payment) throw new Error('Transaction is not a payment transaction');
+
+  return {
+    txId: txn.id || txId,
+    sender: txn.sender,
+    receiver: payment.receiver,
+    amount: Number(payment.amount || 0),
+    confirmedRound: txn['confirmed-round'],
+  };
+};
+
+export const discoverFundingTransaction = async (input: {
+  sender: string;
+  receiver: string;
+  amount: number;
+}): Promise<FundingTransaction | null> => {
+  const minAmount = Math.max(0, Number(input.amount) - 1);
+  const maxAmount = Number(input.amount) + 1;
+
+  const search: any = algorandService
+    .getIndexerClient()
+    .searchForTransactions()
+    .txType('pay')
+    .address(input.sender)
+    .addressRole('sender')
+    .currencyGreaterThan(minAmount)
+    .currencyLessThan(maxAmount)
+    .limit(20);
+
+  const result: any = await search.do();
+  const txns: any[] = Array.isArray(result?.transactions) ? result.transactions : [];
+
+  const match = txns.find((txn) => {
+    const payment = txn?.['payment-transaction'];
+    return (
+      payment &&
+      txn.sender === input.sender &&
+      payment.receiver === input.receiver &&
+      Number(payment.amount || 0) === Number(input.amount)
+    );
+  });
+
+  if (!match) return null;
+
+  return {
+    txId: match.id,
+    sender: match.sender,
+    receiver: match['payment-transaction'].receiver,
+    amount: Number(match['payment-transaction'].amount || 0),
+    confirmedRound: match['confirmed-round'],
+  };
+};

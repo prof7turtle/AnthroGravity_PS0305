@@ -1,4 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import algosdk from 'algosdk';
+import { useWallet } from '@txnlab/use-wallet-react';
+import {
+  confirmEscrowFund,
+  createEscrow,
+  deliverEscrow,
+  disputeEscrow,
+  getEscrow,
+  refundEscrow,
+  requestFundEscrowTransaction,
+  submitEscrowWork,
+  withdrawDisputeEscrow,
+  verifyEscrow,
+} from '../lib/escrowApi';
+import type { EscrowRecord } from '../lib/escrowApi';
 
 // ─── Blockchain States (from smart contract) ────────────────────────────
 type BlockchainState = 'CREATED' | 'FUNDED' | 'COMPLETED' | 'DISPUTED' | 'REFUNDED' | 'EXPIRED';
@@ -32,7 +47,15 @@ interface EscrowData {
   hasSubmission: boolean;
   isAiRunning: boolean;
   aiScore: number | null;
-  aiVerdict: { matched: string[]; gaps: string[]; score: number } | null;
+  aiVerdict: {
+    matched: string[];
+    gaps: string[];
+    score: number;
+    verdict: string;
+    recommendation: 'RELEASE' | 'DISPUTE' | '';
+  } | null;
+  aiRawOutput: string;
+  verifyTxId: string;
 }
 
 const INITIAL_ESCROW: EscrowData = {
@@ -54,17 +77,120 @@ const INITIAL_ESCROW: EscrowData = {
   isAiRunning: false,
   aiScore: null,
   aiVerdict: null,
+  aiRawOutput: '',
+  verifyTxId: '',
+};
+
+const DEMO_ESCROW_STORAGE_KEY = 'algoescrow_workflows_id';
+
+const mapEscrowToView = (record: EscrowRecord): EscrowData => ({
+  id: record.escrowId,
+  title: record.itemName,
+  clientAddr: record.buyerAddress || 'Pending funding',
+  freelancerAddr: record.sellerAddress,
+  amount: record.amount,
+  currency: record.currency,
+  deadline: record.deadlineAt,
+  requirements: record.requirements.length
+    ? record.requirements
+    : [
+        'Must use AlgoKit Utils TypeScript SDK',
+        'Must successfully sign and send a 0-ALGO transaction',
+        'Code must have 100% test coverage using vitest',
+      ],
+  aiCriteria:
+    'The verification engine checks submitted deliverables against requirements and returns a score plus release/dispute recommendation.',
+  blockchainState: record.state,
+  hasSubmission: record.hasSubmission,
+  isAiRunning: record.isAiRunning,
+  aiScore: record.aiScore,
+  aiVerdict:
+    record.aiVerdict && record.aiVerdict.score !== null
+      ? {
+          matched: record.aiVerdict.matched,
+          gaps: record.aiVerdict.gaps,
+          score: record.aiVerdict.score,
+          verdict: record.aiVerdict.verdict,
+          recommendation: record.aiVerdict.recommendation,
+        }
+      : null,
+  aiRawOutput: record.aiRawOutput || '',
+  verifyTxId: record.txIds?.verify || '',
+});
+
+const toInlineAnalysis = (value: string, maxLen = 320) => {
+  const normalized = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!normalized) return 'Analysis completed, but no paragraph was returned.';
+  if (normalized.length <= maxLen) return normalized;
+  return `${normalized.slice(0, maxLen)}...`;
 };
 
 // ─── Component ───────────────────────────────────────────────────────────
 const Freelance = () => {
+  const { activeAddress, signTransactions, algodClient } = useWallet();
   const [viewMode, setViewMode] = useState<ViewMode>('client');
   const [escrow, setEscrow] = useState<EscrowData>(INITIAL_ESCROW);
+  const [escrowId, setEscrowId] = useState('');
+  const [isBusy, setIsBusy] = useState(false);
+  const [serverMessage, setServerMessage] = useState('');
+  const [serverError, setServerError] = useState('');
+  const [lastAnalysisAt, setLastAnalysisAt] = useState('');
 
   // Freelancer form
   const [repoUrl, setRepoUrl] = useState('');
   const [liveUrl, setLiveUrl] = useState('');
   const [notes, setNotes] = useState('');
+
+  const syncEscrow = async (id: string) => {
+    const record = await getEscrow(id);
+    setEscrow(mapEscrowToView(record));
+    setEscrowId(record.escrowId);
+    localStorage.setItem(DEMO_ESCROW_STORAGE_KEY, record.escrowId);
+  };
+
+  useEffect(() => {
+    const boot = async () => {
+      setServerError('');
+      setServerMessage('');
+
+      try {
+        if (!activeAddress) {
+          setServerMessage('Connect Pera wallet to initialize a buyer-locked escrow session.');
+          return;
+        }
+
+        const storedId = localStorage.getItem(DEMO_ESCROW_STORAGE_KEY);
+        if (storedId) {
+          try {
+            await syncEscrow(storedId);
+            return;
+          } catch {
+            localStorage.removeItem(DEMO_ESCROW_STORAGE_KEY);
+          }
+        }
+
+        const created = await createEscrow({
+          sellerAddress: activeAddress,
+          buyerAddress: activeAddress,
+          itemName: INITIAL_ESCROW.title,
+          escrowType: 'FREELANCE',
+          amount: INITIAL_ESCROW.amount,
+          currency: INITIAL_ESCROW.currency,
+          deadlineHours: 72,
+          requirements: INITIAL_ESCROW.requirements,
+        });
+
+        setEscrow(mapEscrowToView(created));
+        setEscrowId(created.escrowId);
+        localStorage.setItem(DEMO_ESCROW_STORAGE_KEY, created.escrowId);
+        setServerMessage('Escrow session initialized from server.');
+      } catch (err: any) {
+        setServerError(err?.response?.data?.message || 'Failed to initialize escrow session from server.');
+      }
+    };
+
+    void boot();
+  }, [activeAddress]);
 
   // ─── Derive UI status from blockchain state + off-chain data ─────────
   const deriveUIStatus = (): DerivedUIStatus => {
@@ -90,47 +216,247 @@ const Freelance = () => {
   const uiStatus = deriveUIStatus();
 
   // ─── Actions ─────────────────────────────────────────────────────────
-  const handleFundEscrow = () => {
-    setEscrow((prev) => ({ ...prev, blockchainState: 'FUNDED' }));
-  };
+  const handleFundEscrow = async () => {
+    if (!escrowId || isBusy) return;
 
-  const handleSubmitWork = () => {
-    setEscrow((prev) => ({ ...prev, hasSubmission: true, isAiRunning: true }));
-    // Simulate AI agent verification (3 seconds)
-    setTimeout(() => {
-      const score = 88;
-      const verdict = {
-        score,
-        matched: ['AlgoKit Utils TS integrated', '0-ALGO transaction signed', 'Pera Wallet session managed'],
-        gaps: ['Test coverage at 85% instead of 100%'],
-      };
-      setEscrow((prev) => ({ ...prev, isAiRunning: false, aiScore: score, aiVerdict: verdict }));
-      // AI approved → move to COMPLETED
-      if (score >= 75) {
-        setTimeout(() => {
-          setEscrow((prev) => ({ ...prev, blockchainState: 'COMPLETED' }));
-        }, 1500);
-      } else {
-        setTimeout(() => {
-          setEscrow((prev) => ({ ...prev, blockchainState: 'DISPUTED' }));
-        }, 1500);
+    if (!activeAddress) {
+      setServerError('Connect your Pera wallet before funding escrow.');
+      return;
+    }
+
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const actor = activeAddress;
+
+      const accountInfo = await algodClient.accountInformation(actor).do();
+      const walletBalance = Number(accountInfo?.amount || 0);
+      const estimatedFeeBuffer = 2000;
+      const requiredBalance = Number(escrow.amount) + estimatedFeeBuffer;
+      if (walletBalance < requiredBalance) {
+        setServerError(
+          `Insufficient TestNet ALGO balance. Wallet has ${walletBalance} microALGO, requires at least ${requiredBalance} microALGO. Fund your wallet from Algorand TestNet faucet and retry.`,
+        );
+        return;
       }
-    }, 3000);
+
+      const prepared = await requestFundEscrowTransaction(escrowId, { buyerAddress: actor });
+
+      const unsignedTransactionBytes = Uint8Array.from(atob(prepared.unsignedTransaction), (char) => char.charCodeAt(0));
+      const unsignedTransaction = algosdk.decodeUnsignedTransaction(unsignedTransactionBytes);
+      const unsignedSender = unsignedTransaction.sender.toString();
+      if (unsignedSender !== actor) {
+        setServerError(
+          `Wallet/account mismatch detected. Connected account: ${actor}, transaction sender: ${unsignedSender}. Disconnect and reconnect Pera with the correct account, then retry.`,
+        );
+        return;
+      }
+
+      const signedTransactions = await signTransactions([unsignedTransaction]);
+      const signedBlob = signedTransactions[0];
+
+      if (!signedBlob) {
+        throw new Error('Wallet did not return a signed transaction.');
+      }
+
+      const sendResult = await algodClient.sendRawTransaction(signedBlob).do();
+      await algosdk.waitForConfirmation(algodClient, sendResult.txid, 4);
+
+      const updated = await confirmEscrowFund(escrowId, { txId: sendResult.txid });
+      setEscrow(mapEscrowToView(updated));
+      setServerMessage(
+        `Escrow funded and verified. Tx: ${updated.txIds.fund} | Explorer: https://testnet.algoexplorer.io/tx/${updated.txIds.fund}`,
+      );
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.message;
+      const backendError = err?.response?.data?.error;
+      const clientMessage = err?.message ? String(err.message) : '';
+      setServerError(
+        backendMessage
+          ? `${backendMessage}${backendError ? ` (${backendError})` : ''}`
+          : clientMessage || 'Failed to fund escrow.',
+      );
+    } finally {
+      setIsBusy(false);
+    }
   };
 
-  const handleClientConfirm = () => {
-    setEscrow((prev) => ({ ...prev, blockchainState: 'COMPLETED' }));
+  const handleSubmitWork = async () => {
+    if (!escrowId || isBusy) return;
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const actor = localStorage.getItem('algoescrow_activeAddress') || escrow.freelancerAddr;
+      await submitEscrowWork(escrowId, {
+        sellerAddress: actor,
+        githubUrl: repoUrl,
+        liveUrl,
+        notes,
+        description: notes || 'Deliverables submitted from workflows page',
+      });
+      const verified = await verifyEscrow(escrowId);
+      setEscrow(mapEscrowToView(verified));
+      setLastAnalysisAt(new Date().toISOString());
+      const analysisPreview = toInlineAnalysis(verified.aiVerdict?.verdict || '');
+      setServerMessage(
+        `Analysis complete: ${analysisPreview}`,
+      );
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.message;
+      const backendError = err?.response?.data?.error;
+      setServerError(
+        backendMessage
+          ? `${backendMessage}${backendError ? ` (${backendError})` : ''}`
+          : 'Failed to submit and verify deliverables.',
+      );
+    } finally {
+      setIsBusy(false);
+    }
   };
 
-  const handleClientDispute = () => {
-    setEscrow((prev) => ({ ...prev, blockchainState: 'DISPUTED' }));
+  const handleAnalyzeNow = async () => {
+    if (!escrowId || isBusy) return;
+
+    if (escrow.blockchainState !== 'FUNDED') {
+      setServerError('AI verification can only run while escrow is in FUNDED state.');
+      return;
+    }
+
+    if (!escrow.hasSubmission) {
+      setServerError('Submit deliverables before running AI verification.');
+      return;
+    }
+
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const verified = await verifyEscrow(escrowId);
+      setEscrow(mapEscrowToView(verified));
+      setLastAnalysisAt(new Date().toISOString());
+      const analysisPreview = toInlineAnalysis(verified.aiVerdict?.verdict || '');
+      setServerMessage(
+        `Analyze Now complete: ${analysisPreview}`,
+      );
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.message;
+      const backendError = err?.response?.data?.error;
+      setServerError(
+        backendMessage
+          ? `${backendMessage}${backendError ? ` (${backendError})` : ''}`
+          : 'Failed to run AI verification.',
+      );
+    } finally {
+      setIsBusy(false);
+    }
   };
 
-  const handleResetDemo = () => {
-    setEscrow(INITIAL_ESCROW);
-    setRepoUrl('');
-    setLiveUrl('');
-    setNotes('');
+  const handleClientConfirm = async () => {
+    if (!escrowId || isBusy) return;
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const actor = localStorage.getItem('algoescrow_activeAddress') || 'DEMO-BUYER-ALGO-ADDR';
+      const updated = await deliverEscrow(escrowId, { actor });
+
+      setEscrow(mapEscrowToView(updated));
+      setServerMessage(`Escrow moved to ${updated.state}. Tx: ${updated.txIds.release}`);
+    } catch (err: any) {
+      setServerError(err?.response?.data?.message || 'Failed to confirm delivery.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleWithdrawDispute = async () => {
+    if (!escrowId || isBusy) return;
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const actor = localStorage.getItem('algoescrow_activeAddress') || 'DEMO-BUYER-ALGO-ADDR';
+      const updated = await withdrawDisputeEscrow(escrowId, { actor });
+      setEscrow(mapEscrowToView(updated));
+      setServerMessage('Dispute withdrawn. Escrow remains funded and no release was executed.');
+    } catch (err: any) {
+      setServerError(err?.response?.data?.message || 'Failed to withdraw dispute.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleAskRefund = async () => {
+    if (!escrowId || isBusy) return;
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const actor = localStorage.getItem('algoescrow_activeAddress') || 'DEMO-BUYER-ALGO-ADDR';
+      const updated = await refundEscrow(escrowId, { actor });
+      setEscrow(mapEscrowToView(updated));
+      setServerMessage(`Refund requested and executed. Tx: ${updated.txIds.refund}`);
+    } catch (err: any) {
+      setServerError(err?.response?.data?.message || 'Failed to request refund.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleClientDispute = async () => {
+    if (!escrowId || isBusy) return;
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const actor = localStorage.getItem('algoescrow_activeAddress') || 'DEMO-BUYER-ALGO-ADDR';
+      const updated = await disputeEscrow(escrowId, { actor });
+      setEscrow(mapEscrowToView(updated));
+      setServerMessage(`Dispute raised. Tx: ${updated.txIds.dispute}`);
+    } catch (err: any) {
+      setServerError(err?.response?.data?.message || 'Failed to raise dispute.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleResetDemo = async () => {
+    if (isBusy) return;
+
+    if (!activeAddress) {
+      setServerError('Connect Pera wallet before resetting escrow demo.');
+      return;
+    }
+
+    setIsBusy(true);
+    setServerError('');
+
+    try {
+      const created = await createEscrow({
+        sellerAddress: activeAddress,
+        buyerAddress: activeAddress,
+        itemName: INITIAL_ESCROW.title,
+        escrowType: 'FREELANCE',
+        amount: INITIAL_ESCROW.amount,
+        currency: INITIAL_ESCROW.currency,
+        deadlineHours: 72,
+        requirements: INITIAL_ESCROW.requirements,
+      });
+
+      setEscrow(mapEscrowToView(created));
+      setEscrowId(created.escrowId);
+      localStorage.setItem(DEMO_ESCROW_STORAGE_KEY, created.escrowId);
+      setRepoUrl('');
+      setLiveUrl('');
+      setNotes('');
+      setServerMessage('Demo reset complete with a fresh server escrow.');
+    } catch (err: any) {
+      setServerError(err?.response?.data?.message || 'Failed to reset demo escrow.');
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   // ─── Badge Renderers ─────────────────────────────────────────────────
@@ -179,19 +505,41 @@ const Freelance = () => {
           if (escrow.hasSubmission && !escrow.isAiRunning && escrow.aiScore !== null)
             return ['confirm', 'dispute'];
           return ['dispute'];
+        case 'DISPUTED':
+          return ['withdraw dispute', 'ask refund'];
         default: return [];
       }
     } else {
       switch (escrow.blockchainState) {
         case 'FUNDED':
           if (!escrow.hasSubmission) return ['submit work'];
-          return ['view status'];
+          if (escrow.isAiRunning) return ['view analysis'];
+          return ['update submission', 'analyze now'];
         default: return ['view status'];
       }
     }
   };
 
   const allowedActions = getAllowedActions();
+
+  const aiAnalysisPanel = () => {
+    const analysisParagraph = escrow.aiVerdict?.verdict?.trim()
+      ? escrow.aiVerdict.verdict.trim()
+      : escrow.hasSubmission
+        ? 'Submission received. Run Analyze Now to generate the analysis paragraph.'
+        : 'No deliverables submitted yet. Freelancer must submit work first.';
+
+    return (
+      <div className="bg-[#141418] border border-white/10 rounded-2xl p-5">
+        <h3 className="text-base font-bold mb-3">Work Analysis</h3>
+        <div className="rounded-lg border border-white/10 bg-black/30 p-4">
+          <p className="text-sm text-[#d4d4d8] leading-relaxed m-0">
+            {analysisParagraph}
+          </p>
+        </div>
+      </div>
+    );
+  };
 
   // ─── Render ───────────────────────────────────────────────────────────
   return (
@@ -223,8 +571,39 @@ const Freelance = () => {
           >
             Reset Demo
           </button>
+          <button
+            onClick={() => {
+              if (!escrowId) return;
+              void syncEscrow(escrowId);
+              setServerError('');
+              setServerMessage('Escrow refreshed from server.');
+            }}
+            className="text-xs text-[#8a8a98] hover:text-white border border-white/10 px-3 py-2 rounded-lg transition-colors"
+          >
+            Refresh Escrow
+          </button>
         </div>
       </div>
+
+      {(serverMessage || serverError || isBusy) && (
+        <div className="mb-6 space-y-2">
+          {isBusy ? (
+            <div className="rounded-lg border border-[#a855f7]/30 bg-[#a855f7]/10 px-4 py-2 text-xs font-semibold text-[#c084fc]">
+              Syncing escrow state with server...
+            </div>
+          ) : null}
+          {serverMessage ? (
+            <div className="rounded-lg border border-[#a855f7]/20 bg-[#a855f7]/10 px-4 py-2 text-xs text-[#d9c5ff]">
+              {serverMessage}
+            </div>
+          ) : null}
+          {serverError ? (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300">
+              {serverError}
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* ═══ Gig Header ═══ */}
       <div className="bg-[#141418] border border-white/5 rounded-2xl p-8 mb-8 relative overflow-hidden">
@@ -322,6 +701,31 @@ const Freelance = () => {
         {/* ─── Right Column: Dynamic Action Pane ─── */}
         <div className="lg:col-span-2 space-y-6">
 
+          {aiAnalysisPanel()}
+
+          <div className="flex justify-end">
+            <div className="text-right">
+              <button
+                onClick={handleAnalyzeNow}
+                disabled={isBusy || escrow.blockchainState !== 'FUNDED' || !escrow.hasSubmission}
+                className="inline-flex items-center gap-2 rounded-lg border border-[#a855f7]/30 bg-[#a855f7]/15 px-4 py-2 text-sm font-bold text-[#d9c5ff] transition-colors hover:bg-[#a855f7]/25 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Analyze Now
+              </button>
+              {(lastAnalysisAt || escrow.verifyTxId) && (
+                <p className="mt-1 text-[0.7rem] text-[#8a8a98]">
+                  Last analysis: {lastAnalysisAt ? new Date(lastAnalysisAt).toLocaleTimeString() : 'recently'}
+                  {escrow.verifyTxId ? ` | Tx: ${escrow.verifyTxId}` : ''}
+                </p>
+              )}
+              {(escrow.blockchainState !== 'FUNDED' || !escrow.hasSubmission) && (
+                <p className="mt-1 text-[0.7rem] text-[#8a8a98]">
+                  Available after escrow is FUNDED and deliverables are submitted.
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* ══ CREATED: Awaiting Funding ══ */}
           {escrow.blockchainState === 'CREATED' && (
             <div className="bg-[#141418] border border-yellow-500/20 rounded-2xl p-8 shadow-xl">
@@ -393,7 +797,7 @@ const Freelance = () => {
                     <div>
                       <h2 className="text-2xl font-bold mb-2 font-['Outfit']">Submit Deliverables</h2>
                       <p className="text-[#8a8a98] text-sm mb-8">
-                        Complete the form below to trigger AI verification. If your code scores ≥ 75/100, payment is automatically released via the smart contract.
+                        Complete the form below to trigger AI verification. The analysis is advisory and the client must explicitly confirm transfer.
                       </p>
                       <div className="space-y-5">
                         <div>
@@ -432,7 +836,7 @@ const Freelance = () => {
                     <div className="w-20 h-20 rounded-full border-4 border-purple-500/20 border-t-purple-500 animate-spin mb-6 shadow-[0_0_30px_rgba(168,85,247,0.3)]"></div>
                     <h2 className="text-2xl font-bold font-['Outfit'] text-white mb-3">AI Agent is Verifying…</h2>
                     <p className="text-[#8a8a98] max-w-md mx-auto mb-6 text-sm">
-                      The Claude AI agent is cloning the repository, running tests, and scoring the code against the escrow requirements.
+                      The verification engine is analyzing the submission against escrow requirements.
                     </p>
                     <div className="w-full max-w-sm mb-4">
                       <div className="bg-black/50 rounded-full h-2 overflow-hidden border border-white/5">
@@ -456,10 +860,39 @@ const Freelance = () => {
                       ✓
                     </div>
                     <h2 className="text-2xl font-bold font-['Outfit'] mb-2">AI Approved — Score: {escrow.aiScore}/100</h2>
-                    <p className="text-[#8a8a98] text-sm mb-4">Threshold met. Smart contract is executing payment release…</p>
+                    <p className="text-[#8a8a98] text-sm mb-4">Threshold met. Client must still confirm delivery to release funds.</p>
                     <div className="inline-block bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2">
-                      <span className="text-xs font-mono text-emerald-300 animate-pulse">Calling confirmDelivery() on-chain…</span>
+                      <span className="text-xs font-mono text-emerald-300">Awaiting client transfer decision.</span>
                     </div>
+                    {viewMode === 'client' && (
+                      <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                        <button
+                          onClick={handleClientConfirm}
+                          disabled={isBusy}
+                          className="px-6 py-2 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 font-bold text-sm hover:bg-emerald-500/30 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Confirm Delivery
+                        </button>
+                        <button
+                          onClick={handleClientDispute}
+                          disabled={isBusy}
+                          className="px-6 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 font-bold text-sm hover:bg-red-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Raise Dispute
+                        </button>
+                      </div>
+                    )}
+                    {viewMode === 'freelancer' && (
+                      <div className="mt-6">
+                        <button
+                          onClick={handleAnalyzeNow}
+                          disabled={isBusy}
+                          className="inline-flex items-center justify-center rounded-lg bg-violet-500/20 hover:bg-violet-500/30 border border-violet-400/30 text-violet-200 font-bold px-5 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Re-Analyze
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -472,8 +905,81 @@ const Freelance = () => {
                   </div>
                   <h3 className="text-xl font-bold mb-2 font-['Outfit']">Work Submitted</h3>
                   <p className="text-[#8a8a98] max-w-md mx-auto text-sm">
-                    The freelancer has submitted deliverables. AI verification will begin shortly.
+                    The freelancer has submitted deliverables. Run Analyze Now to refresh recommendation after any updates.
                   </p>
+                  <div className="mt-6">
+                    <button
+                      onClick={handleAnalyzeNow}
+                      disabled={isBusy}
+                      className="inline-flex items-center justify-center rounded-lg bg-violet-500/20 hover:bg-violet-500/30 border border-violet-400/30 text-violet-200 font-bold px-5 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Analyze Now
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {viewMode === 'client' && escrow.aiScore !== null && uiStatus !== 'VERIFYING' && (
+                <div className="bg-[#141418] border border-white/10 rounded-2xl p-6">
+                  <h3 className="text-lg font-bold mb-2">Client Decision Required</h3>
+                  <p className="text-sm text-[#8a8a98] mb-4">
+                    AI analysis is complete. Choose whether to release funds to freelancer or open a dispute.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={handleClientConfirm}
+                      disabled={isBusy}
+                      className="flex-1 py-3 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 font-bold hover:bg-emerald-500/30 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Confirm Delivery and Release Funds
+                    </button>
+                    <button
+                      onClick={handleClientDispute}
+                      disabled={isBusy}
+                      className="flex-1 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 font-bold hover:bg-red-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Raise Dispute
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {viewMode === 'freelancer' && escrow.hasSubmission && uiStatus !== 'VERIFYING' && (
+                <div className="bg-[#141418] border border-white/5 rounded-2xl p-6 shadow-xl">
+                  <h3 className="text-lg font-bold font-['Outfit'] mb-2">Update Submission</h3>
+                  <p className="text-[#8a8a98] text-sm mb-5">
+                    You can update deliverables and run analysis again before the client decides transfer or dispute.
+                  </p>
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      placeholder="Updated GitHub repository URL"
+                      className="w-full bg-[#0a0a0c] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#a855f7]/50 transition-colors"
+                      value={repoUrl}
+                      onChange={(e) => setRepoUrl(e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Updated live preview URL"
+                      className="w-full bg-[#0a0a0c] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#a855f7]/50 transition-colors"
+                      value={liveUrl}
+                      onChange={(e) => setLiveUrl(e.target.value)}
+                    />
+                    <textarea
+                      rows={3}
+                      placeholder="What changed since last submission?"
+                      className="w-full bg-[#0a0a0c] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#a855f7]/50 transition-colors resize-none"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    ></textarea>
+                    <button
+                      onClick={handleSubmitWork}
+                      disabled={isBusy}
+                      className="w-full bg-linear-to-r from-[#a855f7] to-[#7c3aed] text-white font-bold py-3 rounded-xl hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Update Submission &amp; Re-Analyze
+                    </button>
+                  </div>
                 </div>
               )}
             </>
@@ -498,16 +1004,23 @@ const Freelance = () => {
                 {/* Detailed Feedback */}
                 {escrow.aiVerdict && (
                   <div className="flex-1 space-y-4">
-                    <div>
-                      <h4 className="text-sm font-bold text-white mb-2">✓ Matched Requirements</h4>
-                      <ul className="space-y-1">
-                        {escrow.aiVerdict.matched.map((m, i) => (
-                          <li key={i} className="text-xs text-[#8a8a98] flex items-start gap-2">
-                            <span className="text-[#a855f7]">•</span> {m}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    {escrow.aiVerdict.matched.length > 0 ? (
+                      <div>
+                        <h4 className="text-sm font-bold text-white mb-2">✓ Matched Requirements</h4>
+                        <ul className="space-y-1">
+                          {escrow.aiVerdict.matched.map((m, i) => (
+                            <li key={i} className="text-xs text-[#8a8a98] flex items-start gap-2">
+                              <span className="text-[#a855f7]">•</span> {m}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <div>
+                        <h4 className="text-sm font-bold text-white mb-2">No Matched Requirements</h4>
+                        <p className="text-xs text-[#8a8a98]">The analysis did not find evidence for any requirement in the submitted inputs.</p>
+                      </div>
+                    )}
                     {escrow.aiVerdict.gaps.length > 0 && (
                       <div>
                         <h4 className="text-sm font-bold text-yellow-500 mb-2">⚠ Gaps Found</h4>
@@ -525,22 +1038,27 @@ const Freelance = () => {
               </div>
 
               <div className="bg-[#a855f7]/10 border border-[#a855f7]/20 rounded-xl p-5 mb-6 text-center">
-                <h3 className="text-[#a855f7] font-bold mb-1">Threshold Met — Score ≥ 75/100</h3>
-                <p className="text-sm text-[#a855f7]/80">
-                  The smart contract has automatically released {escrow.amount.toLocaleString()} {escrow.currency} to the freelancer.
-                </p>
+                {typeof escrow.aiScore === 'number' && escrow.aiScore >= 75 ? (
+                  <>
+                    <h3 className="text-[#a855f7] font-bold mb-1">Threshold Met — Score ≥ 75/100</h3>
+                    <p className="text-sm text-[#a855f7]/80">
+                      AI evaluation passed the threshold, and the client-approved release moved funds to the freelancer.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-[#a855f7] font-bold mb-1">Released By Manual Decision</h3>
+                    <p className="text-sm text-[#a855f7]/80">
+                      Funds were released via a manual decision path, not by meeting the AI score threshold.
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="flex gap-4">
                 <button className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-lg transition-colors border border-white/5">
                   View Transaction on Explorer
                 </button>
-                {viewMode === 'client' && (
-                  <button onClick={handleClientDispute}
-                    className="flex-1 bg-[#0a0a0c] hover:bg-red-500/10 text-[#8a8a98] hover:text-red-400 font-bold py-3 rounded-lg transition-colors border border-white/5 hover:border-red-500/30">
-                    Dispute Evaluation
-                  </button>
-                )}
               </div>
             </div>
           )}
@@ -569,9 +1087,13 @@ const Freelance = () => {
                   <button className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-lg transition-colors border border-white/5">
                     Submit Evidence
                   </button>
-                  <button onClick={handleClientConfirm}
+                  <button onClick={handleWithdrawDispute}
                     className="flex-1 bg-[#a855f7]/10 hover:bg-[#a855f7]/20 text-[#a855f7] font-bold py-3 rounded-lg transition-colors border border-[#a855f7]/20">
-                    Withdraw Dispute &amp; Release Funds
+                    Withdraw Dispute
+                  </button>
+                  <button onClick={handleAskRefund}
+                    className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-3 rounded-lg transition-colors border border-red-500/20">
+                    Ask for Refund
                   </button>
                 </div>
               )}

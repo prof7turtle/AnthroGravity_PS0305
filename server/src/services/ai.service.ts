@@ -1,265 +1,416 @@
-/**
- * AI Service
- * Handles AI-powered verification for Freelance escrows
- * Supports both Claude API and XAI/Grok API
- */
+import axios from 'axios';
 
-import Anthropic from '@anthropic-ai/sdk';
-
-interface XAIResponse {
-  choices: Array<{
-    message: {
-      content: string;
-    };
-  }>;
-}
-
-interface AIVerificationResult {
+export type AiVerificationResult = {
   score: number;
-  verdict: string;
-  recommendation: 'RELEASE' | 'REFUND' | 'PARTIAL';
+  matched_criteria: string[];
+  missing_criteria: string[];
   analysis: string;
-}
+  verdict: string;
+  recommendation: 'RELEASE' | 'DISPUTE';
+  rawOutput?: string;
+};
 
-interface DeliverablesInput {
+const GROQ_API_URL = process.env.GROQ_API_URL || 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+
+const clampScore = (value: number) => {
+  if (!Number.isFinite(value)) return 0;
+  if (value < 0) return 0;
+  if (value > 100) return 100;
+  return Math.round(value);
+};
+
+const normalizeRecommendation = (value: unknown): 'RELEASE' | 'DISPUTE' => {
+  const normalized = String(value || '').toUpperCase();
+  return normalized === 'RELEASE' ? 'RELEASE' : 'DISPUTE';
+};
+
+const normalizeText = (value: unknown) => String(value || '').toLowerCase();
+const normalizeComparable = (value: unknown) => String(value || '').trim().toLowerCase();
+
+const looksLikeUrl = (value: string) => /^https?:\/\//i.test(value.trim());
+
+const isValidHttpUrl = (value: string) => {
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const isMeaningfulDescription = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (looksLikeUrl(trimmed)) return false;
+  if (trimmed.length < 20) return false;
+  const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+  return wordCount >= 4;
+};
+
+const hasAlgokitEvidence = (text: string) => /algokit|algo\s*kit/.test(text);
+const hasZeroAlgoEvidence = (text: string) => /\b0\s*-?\s*algo\b|\bzero\s+algo\b|\bsend\b[^.]{0,60}\b0\s*-?\s*algo\b/.test(text);
+const hasVitestEvidence = (text: string) => /\bvitest\b|\btest\s*coverage\b/.test(text);
+
+const requirementIsSatisfiedByEvidence = (requirement: string, evidenceText: string) => {
+  const req = normalizeText(requirement);
+
+  if (/algokit|algo\s*kit/.test(req)) return hasAlgokitEvidence(evidenceText);
+  if (/0\s*-?\s*algo|zero\s+algo/.test(req)) return hasZeroAlgoEvidence(evidenceText);
+  if (/vitest|test\s*coverage/.test(req)) return hasVitestEvidence(evidenceText);
+
+  // For generic requirements, only mark satisfied when requirement wording appears in evidence.
+  return req.length > 0 && evidenceText.includes(req);
+};
+
+const canonicalGapKey = (value: string) => {
+  const normalized = normalizeText(value);
+  if (/algokit|algo\s*kit/.test(normalized)) return 'algokit';
+  if (/0\s*-?\s*algo|zero\s+algo/.test(normalized)) return 'zero-algo';
+  if (/vitest|test\s*coverage/.test(normalized)) return 'vitest-coverage';
+  if (/repository|github/.test(normalized)) return 'repository';
+  if (/live|deploy/.test(normalized)) return 'live-url';
+  if (/description|summary/.test(normalized)) return 'description';
+  return `raw:${normalized}`;
+};
+
+const dedupeMissingCriteria = (items: string[]) => {
+  const cleaned = items
+    .map((item) => String(item || '').trim())
+    .filter((item) => item.length > 0);
+
+  const byKey = new Map<string, string>();
+
+  for (const item of cleaned) {
+    const key = canonicalGapKey(item);
+    const existing = byKey.get(key);
+
+    // Prefer explicit requirement-level phrasing over generic phrasing.
+    if (!existing || (/^requirement not evidenced:/i.test(item) && !/^requirement not evidenced:/i.test(existing))) {
+      byKey.set(key, item);
+    }
+  }
+
+  return Array.from(byKey.values());
+};
+
+const groundResultToEvidence = (
+  result: AiVerificationResult,
+  input: {
+    requirements: string[];
+    githubUrl?: string;
+    liveUrl?: string;
+    description?: string;
+    screenshotsUrls?: string[];
+  },
+): AiVerificationResult => {
+  const githubUrl = String(input.githubUrl || '').trim();
+  const liveUrl = String(input.liveUrl || '').trim();
+  const description = String(input.description || '').trim();
+
+  const evidenceText = normalizeText([githubUrl, liveUrl, description].filter(Boolean).join(' '));
+
+  const unsupportedPatterns: Array<{ pattern: RegExp; allowed: boolean }> = [
+    { pattern: /algokit|algo\s*kit/i, allowed: hasAlgokitEvidence(evidenceText) },
+    { pattern: /0\s*-?\s*algo|zero\s+algo/i, allowed: hasZeroAlgoEvidence(evidenceText) },
+    { pattern: /vitest|test\s*coverage/i, allowed: hasVitestEvidence(evidenceText) },
+  ];
+
+  const groundedMatched = result.matched_criteria.filter((item) => {
+    return !unsupportedPatterns.some(({ pattern, allowed }) => !allowed && pattern.test(item));
+  });
+
+  const requirementGaps = (input.requirements || [])
+    .filter((req) => typeof req === 'string' && req.trim().length > 0)
+    .filter((req) => !requirementIsSatisfiedByEvidence(req, evidenceText))
+    .map((req) => `Requirement not evidenced: ${req}`);
+
+  const mergedMissing = dedupeMissingCriteria([...result.missing_criteria, ...requirementGaps]);
+
+  const normalizedGithub = normalizeComparable(githubUrl);
+  const normalizedLive = normalizeComparable(liveUrl);
+  const normalizedDescription = normalizeComparable(description);
+
+  const sameRepoAndLive = Boolean(normalizedGithub && normalizedLive && normalizedGithub === normalizedLive);
+  const descriptionDuplicatesLink = Boolean(
+    normalizedDescription &&
+      (normalizedDescription === normalizedGithub || normalizedDescription === normalizedLive || looksLikeUrl(description)),
+  );
+
+  const qualityGaps = [
+    ...(githubUrl && !isValidHttpUrl(githubUrl) ? ['GitHub URL is not a valid HTTP(S) URL'] : []),
+    ...(liveUrl && !isValidHttpUrl(liveUrl) ? ['Deployed URL is not a valid HTTP(S) URL'] : []),
+    ...(sameRepoAndLive ? ['GitHub URL and Deployed URL are identical; provide distinct code and live links'] : []),
+    ...(description && !isMeaningfulDescription(description)
+      ? ['Description is too short or URL-like; provide a meaningful implementation summary']
+      : []),
+    ...(descriptionDuplicatesLink
+      ? ['Description duplicates a URL instead of describing the delivered work']
+      : []),
+  ];
+
+  let normalizedScore = clampScore(result.score);
+  if (sameRepoAndLive) normalizedScore = clampScore(normalizedScore - 25);
+  if (descriptionDuplicatesLink) normalizedScore = clampScore(normalizedScore - 20);
+  if (description && !isMeaningfulDescription(description)) normalizedScore = clampScore(normalizedScore - 15);
+
+  const finalMissing = dedupeMissingCriteria([...mergedMissing, ...qualityGaps]);
+  const normalizedMatched = normalizedScore === 0 ? [] : groundedMatched;
+  const normalizedRecommendation: 'RELEASE' | 'DISPUTE' = normalizedScore >= 75 ? 'RELEASE' : 'DISPUTE';
+
+  return {
+    ...result,
+    score: normalizedScore,
+    matched_criteria: normalizedMatched,
+    missing_criteria: finalMissing,
+    recommendation: normalizedRecommendation,
+  };
+};
+
+const fallbackHeuristic = (input: {
+  requirements: string[];
   githubUrl?: string;
-  description: string;
-}
+  liveUrl?: string;
+  description?: string;
+  screenshotsUrls?: string[];
+}): AiVerificationResult => {
+  const hasRepo = Boolean(input.githubUrl && input.githubUrl.trim().length > 0);
+  const hasLiveUrl = Boolean(input.liveUrl && input.liveUrl.trim().length > 0);
+  const hasDescription = Boolean(input.description && input.description.trim().length > 0);
 
-class AIService {
-  private claudeClient: Anthropic | null = null;
-  private xaiApiKey: string | null = null;
-  private xaiUrl: string | null = null;
-  private aiService: 'claude' | 'xai' | null = null;
-  private model: string;
+  let score = 50;
+  if (hasRepo) score += 20;
+  if (hasLiveUrl) score += 15;
+  if (hasDescription) score += 10;
 
-  constructor() {
-    // Determine which AI service to use
-    const aiServiceType = process.env.AI_SERVICE?.toLowerCase();
-    
-    if (aiServiceType === 'xai' || process.env.XAI_API_KEY) {
-      // Use XAI/Grok
-      this.xaiApiKey = process.env.XAI_API_KEY || null;
-      this.xaiUrl = process.env.XAI_API_URL || 'https://api.x.ai/v1/chat/completions';
-      this.model = process.env.XAI_MODEL || 'grok-2-latest';
-      this.aiService = 'xai';
-      
-      if (this.xaiApiKey) {
-        console.log('✅ AI Service initialized with XAI/Grok API');
-      } else {
-        console.warn('⚠️  XAI API key not set');
-      }
-    } else {
-      // Use Claude (fallback)
-      const claudeApiKey = process.env.CLAUDE_API_KEY;
-      this.model = process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022';
-      
-      if (claudeApiKey) {
-        this.claudeClient = new Anthropic({ apiKey: claudeApiKey });
-        this.aiService = 'claude';
-        console.log('✅ AI Service initialized with Claude API');
-      } else {
-        console.warn('⚠️  No AI API keys configured');
-      }
-    }
-  }
+  const matched = [
+    ...(hasRepo ? ['Repository reference provided'] : []),
+    ...(hasLiveUrl ? ['Deployment URL provided'] : []),
+    ...(hasDescription ? ['Work description provided'] : []),
+  ];
 
-  /**
-   * Internal method to call XAI/Grok API
-   */
-  private async callXAI(prompt: string): Promise<string> {
-    if (!this.xaiApiKey || !this.xaiUrl) {
-      throw new Error('XAI API not configured');
-    }
+  const missing = [
+    ...(hasRepo ? [] : ['Missing repository URL']),
+    ...(hasLiveUrl ? [] : ['Missing deployed/live URL']),
+    ...(hasDescription ? [] : ['Missing implementation description']),
+  ];
 
-    const response = await fetch(this.xaiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.xaiApiKey}`,
+  const safeScore = clampScore(score);
+  const analysis = [
+    hasDescription
+      ? 'The submission includes a project summary, which helps assess implementation intent.'
+      : 'The submission is missing a useful project summary, which blocks deeper validation.',
+    hasRepo
+      ? 'A repository link was provided for review.'
+      : 'No repository link was provided for code-level verification.',
+    hasLiveUrl
+      ? 'A live/deployed URL was provided to support runtime validation.'
+      : 'No live/deployed URL was provided for runtime validation.',
+  ].join(' ');
+
+  return {
+    score: safeScore,
+    matched_criteria: matched,
+    missing_criteria: missing,
+    analysis,
+    verdict: safeScore >= 75 ? 'Deliverables meet acceptance threshold' : 'Deliverables do not meet acceptance threshold',
+    recommendation: safeScore >= 75 ? 'RELEASE' : 'DISPUTE',
+    rawOutput: JSON.stringify(
+      {
+        source: 'fallback',
+        score: safeScore,
+        matched_criteria: matched,
+        missing_criteria: missing,
       },
-      body: JSON.stringify({
-        model: this.model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1024,
-        temperature: 0.3,
-      }),
-    });
+      null,
+      2,
+    ),
+  };
+};
 
-    if (!response.ok) {
-      throw new Error(`XAI API error: ${response.status} ${response.statusText}`);
-    }
+const toAiVerificationResult = (parsed: any): AiVerificationResult => {
+  const score = clampScore(Number(parsed?.score));
+  const matched = Array.isArray(parsed?.matched_criteria)
+    ? parsed.matched_criteria.filter((item: unknown) => typeof item === 'string')
+    : [];
+  const missing = Array.isArray(parsed?.missing_criteria)
+    ? dedupeMissingCriteria(parsed.missing_criteria.filter((item: unknown) => typeof item === 'string'))
+    : [];
+  const analysis = typeof parsed?.analysis === 'string' ? parsed.analysis.trim() : '';
+  const verdict = typeof parsed?.verdict === 'string' ? parsed.verdict : '';
+  const recommendation = normalizeRecommendation(parsed?.recommendation);
 
-    const data = (await response.json()) as XAIResponse;
-    const content = data.choices[0]?.message?.content;
+  return {
+    score,
+    matched_criteria: matched,
+    missing_criteria: missing,
+    analysis: analysis || verdict || 'The deliverables were reviewed against the escrow requirements and need further evidence for confident approval.',
+    verdict: verdict || (recommendation === 'RELEASE' ? 'Deliverables approved' : 'Deliverables need revision'),
+    recommendation,
+  };
+};
 
-    if (!content) {
-      throw new Error('No content in XAI response');
-    }
+const extractJsonCandidate = (content: string): string => {
+  const trimmed = content.trim();
 
-    return content;
+  // Accept ```json ... ``` or plain ``` ... ``` blocks.
+  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenceMatch?.[1]) return fenceMatch[1].trim();
+
+  // Accept text-wrapped JSON by taking the first object block.
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    return trimmed.slice(firstBrace, lastBrace + 1).trim();
   }
 
-  /**
-   * Internal method to call Claude API
-   */
-  private async callClaude(prompt: string): Promise<string> {
-    if (!this.claudeClient) {
-      throw new Error('Claude API not configured');
-    }
+  return trimmed;
+};
 
-    const response = await this.claudeClient.messages.create({
-      model: this.model,
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
-    }
-
-    return content.text;
-  }
-
-  /**
-   * Call the configured AI service
-   */
-  private async callAI(prompt: string): Promise<string> {
-    if (this.aiService === 'xai') {
-      return this.callXAI(prompt);
-    } else if (this.aiService === 'claude') {
-      return this.callClaude(prompt);
-    }
-    throw new Error('No AI service available');
-  }
-
-  /**
-   * Verify freelance deliverables against requirements
-   * This is the main method called by routes
-   */
-  async verifyDeliverables(
-    appId: number,
-    requirements: string,
-    deliverables: DeliverablesInput
-  ): Promise<AIVerificationResult> {
-    if (!this.isAvailable()) {
-      throw new Error('No AI service configured');
-    }
-
-    const prompt = `You are an impartial escrow verification AI for blockchain smart contracts. Evaluate whether freelance work deliverables meet the original requirements.
-
-**Escrow App ID:** ${appId}
-
-**Original Requirements:**
-${requirements}
-
-**Submitted Deliverables:**
-Description: ${deliverables.description}
-${deliverables.githubUrl ? `GitHub/URL: ${deliverables.githubUrl}` : ''}
-
-Evaluate carefully and provide:
-1. A score from 0-100 (where 100 = perfect match, requirements fully met)
-2. A recommendation: RELEASE (score >= 70), REFUND (score < 40), or PARTIAL (40-69)
-3. A brief verdict summary (1-2 sentences)
-4. Detailed analysis explaining the score
-
-**Scoring Guidelines:**
-- 90-100: Exceeds or fully meets all requirements → RELEASE
-- 70-89: Meets most requirements with minor gaps → RELEASE
-- 50-69: Partially meets requirements, significant gaps exist → PARTIAL
-- 40-49: Major requirements not met → PARTIAL
-- 0-39: Does not meet requirements at all → REFUND
-
-Respond ONLY in this exact JSON format:
-{
-  "score": <number 0-100>,
-  "recommendation": "<RELEASE|REFUND|PARTIAL>",
-  "verdict": "<1-2 sentence summary>",
-  "analysis": "<detailed reasoning>"
-}`;
-
+const parseModelJson = (content: string): AiVerificationResult | null => {
+  try {
+    return toAiVerificationResult(JSON.parse(content));
+  } catch {
     try {
-      const content = await this.callAI(prompt);
-      
-      // Parse JSON response (handle potential markdown code blocks)
-      let jsonStr = content;
-      if (content.includes('```')) {
-        const match = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (match) {
-          jsonStr = match[1];
-        }
+      return toAiVerificationResult(JSON.parse(extractJsonCandidate(content)));
+    } catch {
+      return null;
+    }
+  }
+};
+
+export const evaluateDeliverables = async (input: {
+  requirements: string[];
+  githubUrl?: string;
+  liveUrl?: string;
+  description?: string;
+  screenshotsUrls?: string[];
+}): Promise<AiVerificationResult> => {
+  const apiKey = process.env.GROQ_API_KEY || '';
+  if (!apiKey) {
+    const fallback = fallbackHeuristic(input);
+    return {
+      ...fallback,
+      rawOutput:
+        fallback.rawOutput ||
+        JSON.stringify(
+          {
+            source: 'fallback',
+            reason: 'GROQ_API_KEY is not configured on the server',
+          },
+          null,
+          2,
+        ),
+    };
+  }
+
+  const requirementsText = input.requirements.length
+    ? input.requirements.map((item, index) => `${index + 1}. ${item}`).join('\n')
+    : 'No explicit requirements provided';
+
+  const userPrompt = [
+    'Evaluate the submitted project for escrow release.',
+    '',
+    `Requirements:\n${requirementsText}`,
+    '',
+    `GitHub URL: ${input.githubUrl || 'Not provided'}`,
+    `Deployed URL: ${input.liveUrl || 'Not provided'}`,
+    `Description: ${input.description || 'Not provided'}`,
+    '',
+    'Analyze relevance of the description, repository URL, and deployed URL against requirements.',
+    'Only use explicit evidence from the provided inputs.',
+    'Do not assume technologies, tests, or transactions unless those details are directly present in the inputs.',
+    'Heavily penalize submissions that repeat the same URL across GitHub URL, Deployed URL, and Description.',
+    'Treat URL-only descriptions as low-quality evidence.',
+    'Penalize unrelated/random content and explain why in missing_criteria.',
+    '',
+    'Return STRICT JSON only in this shape:',
+    '{',
+    '  "score": 0-100 integer,',
+    '  "matched_criteria": ["..."],',
+    '  "missing_criteria": ["..."],',
+    '  "analysis": "single paragraph analysis of the work (3-6 sentences)",',
+    '  "verdict": "one sentence",',
+    '  "recommendation": "RELEASE" or "DISPUTE"',
+    '}',
+    'Recommend RELEASE only if score >= 75.',
+  ].join('\n');
+
+  const candidateModels = [GROQ_MODEL, 'llama-3.1-8b-instant', 'llama-3.3-70b-versatile'].filter(
+    (model, index, arr) => Boolean(model) && arr.indexOf(model) === index,
+  );
+
+  let lastErrorMessage = 'Groq request failed';
+  let lastRawOutput = '';
+  let lastModelTried = '';
+
+  for (const model of candidateModels) {
+    lastModelTried = model;
+    try {
+      const response = await axios.post(
+        GROQ_API_URL,
+        {
+          model,
+          temperature: 0.2,
+          response_format: { type: 'json_object' },
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are an escrow verification AI. Be objective and concise. Output valid JSON only with the requested keys.',
+            },
+            {
+              role: 'user',
+              content: userPrompt,
+            },
+          ],
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 20000,
+        },
+      );
+
+      const content = String(response.data?.choices?.[0]?.message?.content || '').trim();
+      lastRawOutput = content;
+      const parsed = parseModelJson(content);
+      if (parsed) {
+        const grounded = groundResultToEvidence(parsed, input);
+        return { ...grounded, rawOutput: content };
       }
 
-      const result = JSON.parse(jsonStr.trim());
-      
-      // Validate and normalize result
-      const score = Math.max(0, Math.min(100, result.score || 0));
-      let recommendation: 'RELEASE' | 'REFUND' | 'PARTIAL' = 'PARTIAL';
-      
-      if (result.recommendation) {
-        const rec = result.recommendation.toUpperCase();
-        if (rec === 'RELEASE' || rec === 'REFUND' || rec === 'PARTIAL') {
-          recommendation = rec;
-        }
-      } else {
-        // Auto-determine from score
-        if (score >= 70) recommendation = 'RELEASE';
-        else if (score < 40) recommendation = 'REFUND';
-        else recommendation = 'PARTIAL';
-      }
-
-      return {
-        score,
-        recommendation,
-        verdict: result.verdict || `Score: ${score}/100`,
-        analysis: result.analysis || result.reasoning || 'No detailed analysis provided',
-      };
-    } catch (error) {
-      console.error('Error in AI verification:', error);
-      throw new Error('AI verification failed');
+      lastErrorMessage = `Groq returned non-JSON output for model ${model}`;
+    } catch (error: any) {
+      const providerMessage =
+        error?.response?.data?.error?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        `Groq request failed for model ${model}`;
+      lastErrorMessage = String(providerMessage);
     }
   }
 
-  /**
-   * Simple check for deliverables (backward compatible method)
-   */
-  async simpleVerify(
-    requirements: string,
-    deliverables: string,
-    deliverableUrl?: string
-  ): Promise<{ score: number; reasoning: string }> {
-    const result = await this.verifyDeliverables(0, requirements, {
-      description: deliverables,
-      githubUrl: deliverableUrl,
-    });
-    
-    return {
-      score: result.score,
-      reasoning: result.analysis,
-    };
-  }
+  const fallback = fallbackHeuristic(input);
+  const groundedFallback = groundResultToEvidence(fallback, input);
+  return {
+    ...groundedFallback,
+    rawOutput: JSON.stringify(
+      {
+        source: 'fallback-after-groq-failure',
+        reason: lastErrorMessage,
+        model: lastModelTried,
+        provider_raw_output: lastRawOutput || 'No content returned by provider',
+      },
+      null,
+      2,
+    ),
+  };
+};
 
-  /**
-   * Check if AI service is available
-   */
-  isAvailable(): boolean {
-    return this.aiService !== null && (
-      (this.aiService === 'xai' && this.xaiApiKey !== null) ||
-      (this.aiService === 'claude' && this.claudeClient !== null)
-    );
-  }
-
-  /**
-   * Get current AI service info
-   */
-  getServiceInfo() {
-    return {
-      service: this.aiService,
-      model: this.model,
-      available: this.isAvailable(),
-    };
-  }
-}
-
-export const aiService = new AIService();
+export const aiService = {
+  isAvailable: () => Boolean(process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim().length > 0),
+  evaluateDeliverables,
+};
