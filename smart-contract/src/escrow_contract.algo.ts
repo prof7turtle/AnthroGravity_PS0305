@@ -166,8 +166,8 @@ export class EscrowContract extends Contract {
     this.state.value = STATE_DELIVERED
 
     // Calculate fee split
-    const feeAmount = (this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)
-    const sellerAmount = this.amount.value - feeAmount
+    const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+    const sellerAmount = (this.amount.value - feeAmount) as uint64
 
     // Inner Txn A: pay seller
     itxn
@@ -259,8 +259,8 @@ export class EscrowContract extends Contract {
 
     if (releaseToSeller) {
       // Arbiter sides with seller: calculate fee and pay out
-      const feeAmount = (this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)
-      const sellerAmount = this.amount.value - feeAmount
+      const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+      const sellerAmount = (this.amount.value - feeAmount) as uint64
 
       itxn
         .payment({
@@ -344,8 +344,8 @@ export class EscrowContract extends Contract {
 
     if (approved) {
       // AI approved: calculate fee and pay seller
-      const feeAmount = (this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)
-      const sellerAmount = this.amount.value - feeAmount
+      const feeAmount = ((this.amount.value * this.platform_fee_bps.value) / (10000 as uint64)) as uint64
+      const sellerAmount = (this.amount.value - feeAmount) as uint64
 
       itxn
         .payment({

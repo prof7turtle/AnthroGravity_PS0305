@@ -25,6 +25,7 @@ import {
   Bytes,
   bytes,
   Application,
+  op,
 } from '@algorandfoundation/algorand-typescript'
 
 export class EscrowFactory extends Contract {
@@ -93,7 +94,7 @@ export class EscrowFactory extends Contract {
     assert(seller !== Account(), 'Seller address must be provided')
 
     // Compute actual deadline round
-    const deadlineRound = Global.round + deadlineRounds
+    const deadlineRound = (Global.round + deadlineRounds) as uint64
 
     // ── Inner Transaction: Deploy new EscrowContract ──────────────────────────
     // Uses the pre-deployed EscrowContract as template (copy app pages)
@@ -102,18 +103,18 @@ export class EscrowFactory extends Contract {
         approvalProgram: escrowContractApp.approvalProgram,
         clearStateProgram: escrowContractApp.clearStateProgram,
         globalNumUint: 12 as uint64,   // number of uint64 global state slots
-        globalNumByteSlice: 8 as uint64, // number of bytes global state slots
+        globalNumBytes: 8 as uint64, // number of bytes global state slots
         localNumUint: 0 as uint64,
-        localNumByteSlice: 0 as uint64,
+        localNumBytes: 0 as uint64,
         fee: 0 as uint64,
-        applicationArgs: [
+        appArgs: [
           // createApplication args packed for the child contract
           seller.bytes,
           itemName,
-          Bytes.fromBigInt(escrowType),
-          Bytes.fromBigInt(deadlineRound),
+          op.itob(escrowType),
+          op.itob(deadlineRound),
           requirementsHash,
-          Bytes.fromBigInt(this.platform_fee_bps.value),
+          op.itob(this.platform_fee_bps.value),
           this.platform_treasury.value.bytes,
           this.arbiter_address.value.bytes,
         ],

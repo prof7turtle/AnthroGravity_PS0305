@@ -1,0 +1,3178 @@
+{
+  "version": 3,
+  "sources": [
+    "../escrow_factory.algo.ts"
+  ],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAgCE;AAAyD;;AAAzD;AACA;AAAuD;;AAAvD;AACA;AAAoD;AAApD;AACA;AAAuD;;AAAvD;AAKA;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAAmE;AAAnE;AACA;;;;;;;;;;;;;;;;;;;;;;;;AAAkE;AAAlE;AAXF;;AAAA;AAAA;AAAA;;AAAA;;;AAAA;;;;;;;;;;;;;;;;;;;;;;AAAA;;;AAAA;;;;;;;;;;AAAA;AAAA;;;;;;AAAA;;;AAAA;;;;AAAA;AAyBG;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAvBD;AAyBE;;AAAA;AAxBF;AAyBE;;AAAA;AAvBF;AAwBE;AAAA;AAzBF;AA0B6B;AAA3B;AALD;AAAA;AAsBA;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;;;AAAA;AAAA;AAAA;AAAA;;AAAA;AAAA;;AAAA;AAAA;AAAA;AAAA;;;AAAA;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;;;AAAA;AAAA;AAAA;AAAA;;AAAA;AAAA;;AAAA;AAAA;AAAA;AAAA;;;AAAA;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAUQ;;AAAe;;AAAf;AAAP;AAGA;;AAAA;AAGO;;AAAW;;AAAX;AAAP;AAGuB;;AAAA;;AAAA;AAIL;AAEG;;AAAA;;AAAA;AACE;;AAAA;;AAAA;AAUjB;;AAAA;AACA;;AAAA;AAEQ;AAnFhB;AAmFgB;AAAA;AAAR;AACA;AArFR;AAqFQ;AAAA;AACA;AAnFR;AAmFQ;AAAA;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAbc;;;AADD;;;;;;;;AAJD;;;;AAQT;;;AARS;;;AAyBS;AA3F7B;AA2F6B;AAAA;AAA4B;AAA5B;AA3F7B;AA2FE;AAAA;AAhDD;AAAA;;AAAA;AAAA;AAAA;AAAA;AAAA;AA8DG;AA3GJ;AA2GI;AAAA;AACA;AA3GJ;AA2GI;AAAA;AACA;AA3GJ;AA2GI;AAAA;AACA;AA3GJ;AA2GI;AAAA;AANH;;AAAA;AAAA;;AAAA;AAAA;AAAA;;AAAA;AAAA;AAAA;AAAA;AAAA;;AAAA;AAAA;AAAA;AAAA;AAAA;AAgBA;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAGQ;;AAAe;;AAAf;AAAP;AAGO;AAAc;;;AAAd;AAAP;AA7HF;AA+HE;AAAA;AARD;AAAA;AAgBA;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAGQ;;AAAe;;AAAf;AAAP;AAEO;AAAe;;AAAf;AAAP;AA1IF;AA4IE;AAAA;AAPD;AAAA",
+  "op_pc_offset": 0,
+  "pc_events": {
+    "1": {
+      "subroutine": "@algorandfoundation/algorand-typescript/arc4/index.d.ts::Contract.approvalProgram",
+      "params": {},
+      "block": "main",
+      "stack_in": [],
+      "op": "intcblock 0 8 1 32"
+    },
+    "7": {
+      "op": "bytecblock \"platform_fee_bps\" \"total_escrows\" \"arbiter_address\" \"platform_treasury\" 0x151f7c75"
+    },
+    "79": {
+      "op": "txn ApplicationID",
+      "defined_out": [
+        "reinterpret_bool%0#0"
+      ],
+      "stack_out": [
+        "reinterpret_bool%0#0"
+      ]
+    },
+    "81": {
+      "op": "bnz main_after_if_else@2",
+      "stack_out": []
+    },
+    "84": {
+      "op": "bytec_3 // \"platform_treasury\"",
+      "defined_out": [
+        "\"platform_treasury\""
+      ],
+      "stack_out": [
+        "\"platform_treasury\""
+      ]
+    },
+    "85": {
+      "op": "global ZeroAddress",
+      "defined_out": [
+        "\"platform_treasury\"",
+        "tmp%0#2"
+      ],
+      "stack_out": [
+        "\"platform_treasury\"",
+        "tmp%0#2"
+      ]
+    },
+    "87": {
+      "op": "app_global_put",
+      "stack_out": []
+    },
+    "88": {
+      "op": "bytec_0 // \"platform_fee_bps\"",
+      "defined_out": [
+        "\"platform_fee_bps\""
+      ],
+      "stack_out": [
+        "\"platform_fee_bps\""
+      ]
+    },
+    "89": {
+      "op": "pushint 50 // 50",
+      "defined_out": [
+        "\"platform_fee_bps\"",
+        "50"
+      ],
+      "stack_out": [
+        "\"platform_fee_bps\"",
+        "50"
+      ]
+    },
+    "91": {
+      "op": "app_global_put",
+      "stack_out": []
+    },
+    "92": {
+      "op": "bytec_1 // \"total_escrows\"",
+      "defined_out": [
+        "\"total_escrows\""
+      ],
+      "stack_out": [
+        "\"total_escrows\""
+      ]
+    },
+    "93": {
+      "op": "intc_0 // 0",
+      "defined_out": [
+        "\"total_escrows\"",
+        "0"
+      ],
+      "stack_out": [
+        "\"total_escrows\"",
+        "0"
+      ]
+    },
+    "94": {
+      "op": "app_global_put",
+      "stack_out": []
+    },
+    "95": {
+      "op": "bytec_2 // \"arbiter_address\"",
+      "defined_out": [
+        "\"arbiter_address\""
+      ],
+      "stack_out": [
+        "\"arbiter_address\""
+      ]
+    },
+    "96": {
+      "op": "global ZeroAddress",
+      "defined_out": [
+        "\"arbiter_address\"",
+        "tmp%1#1"
+      ],
+      "stack_out": [
+        "\"arbiter_address\"",
+        "tmp%1#1"
+      ]
+    },
+    "98": {
+      "op": "app_global_put",
+      "stack_out": []
+    },
+    "99": {
+      "op": "pushbytes \"escrow_contract_approval_len\"",
+      "defined_out": [
+        "\"escrow_contract_approval_len\""
+      ],
+      "stack_out": [
+        "\"escrow_contract_approval_len\""
+      ]
+    },
+    "129": {
+      "op": "intc_0 // 0",
+      "stack_out": [
+        "\"escrow_contract_approval_len\"",
+        "0"
+      ]
+    },
+    "130": {
+      "op": "app_global_put",
+      "stack_out": []
+    },
+    "131": {
+      "op": "pushbytes \"escrow_contract_app_id\"",
+      "defined_out": [
+        "\"escrow_contract_app_id\""
+      ],
+      "stack_out": [
+        "\"escrow_contract_app_id\""
+      ]
+    },
+    "155": {
+      "op": "intc_0 // 0",
+      "stack_out": [
+        "\"escrow_contract_app_id\"",
+        "0"
+      ]
+    },
+    "156": {
+      "op": "app_global_put",
+      "stack_out": []
+    },
+    "157": {
+      "block": "main_after_if_else@2",
+      "stack_in": [],
+      "op": "txn OnCompletion",
+      "defined_out": [
+        "tmp%0#1"
+      ],
+      "stack_out": [
+        "tmp%0#1"
+      ]
+    },
+    "159": {
+      "op": "!",
+      "defined_out": [
+        "tmp%1#0"
+      ],
+      "stack_out": [
+        "tmp%1#0"
+      ]
+    },
+    "160": {
+      "error": "OnCompletion must be NoOp",
+      "op": "assert // OnCompletion must be NoOp",
+      "stack_out": []
+    },
+    "161": {
+      "op": "txn ApplicationID",
+      "defined_out": [
+        "tmp%2#0"
+      ],
+      "stack_out": [
+        "tmp%2#0"
+      ]
+    },
+    "163": {
+      "op": "bz main_create_NoOp@10",
+      "stack_out": []
+    },
+    "166": {
+      "op": "pushbytess 0xfcae0314 0x4243fa33 0x67f88d22 0x600b93d0 // method \"createEscrow(address,byte[],uint64,uint64,byte[],uint64)uint64\", method \"getPlatformConfig()(address,uint64,uint64,address)\", method \"updateFee(uint64)void\", method \"updateArbiter(address)void\"",
+      "defined_out": [
+        "Method(createEscrow(address,byte[],uint64,uint64,byte[],uint64)uint64)",
+        "Method(getPlatformConfig()(address,uint64,uint64,address))",
+        "Method(updateArbiter(address)void)",
+        "Method(updateFee(uint64)void)"
+      ],
+      "stack_out": [
+        "Method(createEscrow(address,byte[],uint64,uint64,byte[],uint64)uint64)",
+        "Method(getPlatformConfig()(address,uint64,uint64,address))",
+        "Method(updateFee(uint64)void)",
+        "Method(updateArbiter(address)void)"
+      ]
+    },
+    "188": {
+      "op": "txna ApplicationArgs 0",
+      "defined_out": [
+        "Method(createEscrow(address,byte[],uint64,uint64,byte[],uint64)uint64)",
+        "Method(getPlatformConfig()(address,uint64,uint64,address))",
+        "Method(updateArbiter(address)void)",
+        "Method(updateFee(uint64)void)",
+        "tmp%4#0"
+      ],
+      "stack_out": [
+        "Method(createEscrow(address,byte[],uint64,uint64,byte[],uint64)uint64)",
+        "Method(getPlatformConfig()(address,uint64,uint64,address))",
+        "Method(updateFee(uint64)void)",
+        "Method(updateArbiter(address)void)",
+        "tmp%4#0"
+      ]
+    },
+    "191": {
+      "op": "match createEscrow getPlatformConfig updateFee updateArbiter",
+      "stack_out": []
+    },
+    "201": {
+      "op": "err"
+    },
+    "202": {
+      "block": "main_create_NoOp@10",
+      "stack_in": [],
+      "op": "pushbytes 0xf912ebd1 // method \"createApplication(address,uint64,address)void\"",
+      "defined_out": [
+        "Method(createApplication(address,uint64,address)void)"
+      ],
+      "stack_out": [
+        "Method(createApplication(address,uint64,address)void)"
+      ]
+    },
+    "208": {
+      "op": "txna ApplicationArgs 0",
+      "defined_out": [
+        "Method(createApplication(address,uint64,address)void)",
+        "tmp%5#0"
+      ],
+      "stack_out": [
+        "Method(createApplication(address,uint64,address)void)",
+        "tmp%5#0"
+      ]
+    },
+    "211": {
+      "op": "match createApplication",
+      "stack_out": []
+    },
+    "215": {
+      "op": "err"
+    },
+    "216": {
+      "subroutine": "src/escrow_factory.algo.ts::EscrowFactory.createApplication[routing]",
+      "params": {},
+      "block": "createApplication",
+      "stack_in": [],
+      "op": "txna ApplicationArgs 1",
+      "defined_out": [
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0"
+      ]
+    },
+    "219": {
+      "op": "dup",
+      "defined_out": [
+        "treasury#0",
+        "treasury#0 (copy)"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "treasury#0 (copy)"
+      ]
+    },
+    "220": {
+      "op": "len",
+      "defined_out": [
+        "len%0#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "len%0#0"
+      ]
+    },
+    "221": {
+      "op": "intc_3 // 32",
+      "defined_out": [
+        "32",
+        "len%0#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "len%0#0",
+        "32"
+      ]
+    },
+    "222": {
+      "op": "==",
+      "defined_out": [
+        "eq%0#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "eq%0#0"
+      ]
+    },
+    "223": {
+      "error": "invalid number of bytes for arc4.static_array<arc4.uint8, 32>",
+      "op": "assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>",
+      "stack_out": [
+        "treasury#0"
+      ]
+    },
+    "224": {
+      "op": "txna ApplicationArgs 2",
+      "defined_out": [
+        "tmp%2#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "tmp%2#0"
+      ]
+    },
+    "227": {
+      "op": "dup",
+      "defined_out": [
+        "tmp%2#0",
+        "tmp%2#0 (copy)",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "tmp%2#0",
+        "tmp%2#0 (copy)"
+      ]
+    },
+    "228": {
+      "op": "len",
+      "defined_out": [
+        "len%1#0",
+        "tmp%2#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "tmp%2#0",
+        "len%1#0"
+      ]
+    },
+    "229": {
+      "op": "intc_1 // 8",
+      "defined_out": [
+        "8",
+        "len%1#0",
+        "tmp%2#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "tmp%2#0",
+        "len%1#0",
+        "8"
+      ]
+    },
+    "230": {
+      "op": "==",
+      "defined_out": [
+        "eq%1#0",
+        "tmp%2#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "tmp%2#0",
+        "eq%1#0"
+      ]
+    },
+    "231": {
+      "error": "invalid number of bytes for arc4.uint64",
+      "op": "assert // invalid number of bytes for arc4.uint64",
+      "stack_out": [
+        "treasury#0",
+        "tmp%2#0"
+      ]
+    },
+    "232": {
+      "op": "btoi",
+      "defined_out": [
+        "feeBps#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "feeBps#0"
+      ]
+    },
+    "233": {
+      "op": "txna ApplicationArgs 3",
+      "defined_out": [
+        "arbiter#0",
+        "feeBps#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "feeBps#0",
+        "arbiter#0"
+      ]
+    },
+    "236": {
+      "op": "dup",
+      "defined_out": [
+        "arbiter#0",
+        "arbiter#0 (copy)",
+        "feeBps#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "feeBps#0",
+        "arbiter#0",
+        "arbiter#0 (copy)"
+      ]
+    },
+    "237": {
+      "op": "len",
+      "defined_out": [
+        "arbiter#0",
+        "feeBps#0",
+        "len%2#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "feeBps#0",
+        "arbiter#0",
+        "len%2#0"
+      ]
+    },
+    "238": {
+      "op": "intc_3 // 32",
+      "stack_out": [
+        "treasury#0",
+        "feeBps#0",
+        "arbiter#0",
+        "len%2#0",
+        "32"
+      ]
+    },
+    "239": {
+      "op": "==",
+      "defined_out": [
+        "arbiter#0",
+        "eq%2#0",
+        "feeBps#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "feeBps#0",
+        "arbiter#0",
+        "eq%2#0"
+      ]
+    },
+    "240": {
+      "error": "invalid number of bytes for arc4.static_array<arc4.uint8, 32>",
+      "op": "assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>",
+      "stack_out": [
+        "treasury#0",
+        "feeBps#0",
+        "arbiter#0"
+      ]
+    },
+    "241": {
+      "op": "bytec_3 // \"platform_treasury\"",
+      "defined_out": [
+        "\"platform_treasury\"",
+        "arbiter#0",
+        "feeBps#0",
+        "treasury#0"
+      ],
+      "stack_out": [
+        "treasury#0",
+        "feeBps#0",
+        "arbiter#0",
+        "\"platform_treasury\""
+      ]
+    },
+    "242": {
+      "op": "uncover 3",
+      "stack_out": [
+        "feeBps#0",
+        "arbiter#0",
+        "\"platform_treasury\"",
+        "treasury#0"
+      ]
+    },
+    "244": {
+      "op": "app_global_put",
+      "stack_out": [
+        "feeBps#0",
+        "arbiter#0"
+      ]
+    },
+    "245": {
+      "op": "bytec_0 // \"platform_fee_bps\"",
+      "defined_out": [
+        "\"platform_fee_bps\"",
+        "arbiter#0",
+        "feeBps#0"
+      ],
+      "stack_out": [
+        "feeBps#0",
+        "arbiter#0",
+        "\"platform_fee_bps\""
+      ]
+    },
+    "246": {
+      "op": "uncover 2",
+      "stack_out": [
+        "arbiter#0",
+        "\"platform_fee_bps\"",
+        "feeBps#0"
+      ]
+    },
+    "248": {
+      "op": "app_global_put",
+      "stack_out": [
+        "arbiter#0"
+      ]
+    },
+    "249": {
+      "op": "bytec_2 // \"arbiter_address\"",
+      "defined_out": [
+        "\"arbiter_address\"",
+        "arbiter#0"
+      ],
+      "stack_out": [
+        "arbiter#0",
+        "\"arbiter_address\""
+      ]
+    },
+    "250": {
+      "op": "swap",
+      "stack_out": [
+        "\"arbiter_address\"",
+        "arbiter#0"
+      ]
+    },
+    "251": {
+      "op": "app_global_put",
+      "stack_out": []
+    },
+    "252": {
+      "op": "bytec_1 // \"total_escrows\"",
+      "defined_out": [
+        "\"total_escrows\""
+      ],
+      "stack_out": [
+        "\"total_escrows\""
+      ]
+    },
+    "253": {
+      "op": "intc_0 // 0",
+      "defined_out": [
+        "\"total_escrows\"",
+        "0"
+      ],
+      "stack_out": [
+        "\"total_escrows\"",
+        "0"
+      ]
+    },
+    "254": {
+      "op": "app_global_put",
+      "stack_out": []
+    },
+    "255": {
+      "op": "intc_2 // 1",
+      "defined_out": [
+        "1"
+      ],
+      "stack_out": [
+        "1"
+      ]
+    },
+    "256": {
+      "op": "return",
+      "stack_out": []
+    },
+    "257": {
+      "subroutine": "src/escrow_factory.algo.ts::EscrowFactory.createEscrow[routing]",
+      "params": {},
+      "block": "createEscrow",
+      "stack_in": [],
+      "op": "txna ApplicationArgs 1",
+      "defined_out": [
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0"
+      ]
+    },
+    "260": {
+      "op": "dup",
+      "defined_out": [
+        "seller#0",
+        "seller#0 (copy)"
+      ],
+      "stack_out": [
+        "seller#0",
+        "seller#0 (copy)"
+      ]
+    },
+    "261": {
+      "op": "len",
+      "defined_out": [
+        "len%0#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "len%0#0"
+      ]
+    },
+    "262": {
+      "op": "intc_3 // 32",
+      "defined_out": [
+        "32",
+        "len%0#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "len%0#0",
+        "32"
+      ]
+    },
+    "263": {
+      "op": "==",
+      "defined_out": [
+        "eq%0#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "eq%0#0"
+      ]
+    },
+    "264": {
+      "error": "invalid number of bytes for arc4.static_array<arc4.uint8, 32>",
+      "op": "assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>",
+      "stack_out": [
+        "seller#0"
+      ]
+    },
+    "265": {
+      "op": "txna ApplicationArgs 2",
+      "defined_out": [
+        "seller#0",
+        "tmp%2#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "tmp%2#0"
+      ]
+    },
+    "268": {
+      "op": "dup",
+      "defined_out": [
+        "seller#0",
+        "tmp%2#0",
+        "tmp%2#0 (copy)"
+      ],
+      "stack_out": [
+        "seller#0",
+        "tmp%2#0",
+        "tmp%2#0 (copy)"
+      ]
+    },
+    "269": {
+      "op": "intc_0 // 0",
+      "defined_out": [
+        "0",
+        "seller#0",
+        "tmp%2#0",
+        "tmp%2#0 (copy)"
+      ],
+      "stack_out": [
+        "seller#0",
+        "tmp%2#0",
+        "tmp%2#0 (copy)",
+        "0"
+      ]
+    },
+    "270": {
+      "error": "invalid array length header",
+      "op": "extract_uint16 // on error: invalid array length header",
+      "defined_out": [
+        "aggregate%array_length%0#0",
+        "seller#0",
+        "tmp%2#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "tmp%2#0",
+        "aggregate%array_length%0#0"
+      ]
+    },
+    "271": {
+      "op": "pushint 2 // 2",
+      "defined_out": [
+        "2",
+        "aggregate%array_length%0#0",
+        "seller#0",
+        "tmp%2#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "tmp%2#0",
+        "aggregate%array_length%0#0",
+        "2"
+      ]
+    },
+    "273": {
+      "op": "+",
+      "defined_out": [
+        "add%0#0",
+        "seller#0",
+        "tmp%2#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "tmp%2#0",
+        "add%0#0"
+      ]
+    },
+    "274": {
+      "op": "dig 1",
+      "stack_out": [
+        "seller#0",
+        "tmp%2#0",
+        "add%0#0",
+        "tmp%2#0 (copy)"
+      ]
+    },
+    "276": {
+      "op": "len",
+      "defined_out": [
+        "add%0#0",
+        "len%1#0",
+        "seller#0",
+        "tmp%2#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "tmp%2#0",
+        "add%0#0",
+        "len%1#0"
+      ]
+    },
+    "277": {
+      "op": "==",
+      "defined_out": [
+        "eq%1#0",
+        "seller#0",
+        "tmp%2#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "tmp%2#0",
+        "eq%1#0"
+      ]
+    },
+    "278": {
+      "error": "invalid number of bytes for arc4.dynamic_array<arc4.uint8>",
+      "op": "assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>",
+      "stack_out": [
+        "seller#0",
+        "tmp%2#0"
+      ]
+    },
+    "279": {
+      "op": "extract 2 0",
+      "defined_out": [
+        "itemName#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0"
+      ]
+    },
+    "282": {
+      "op": "txna ApplicationArgs 3",
+      "defined_out": [
+        "itemName#0",
+        "seller#0",
+        "tmp%4#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "tmp%4#0"
+      ]
+    },
+    "285": {
+      "op": "dup",
+      "defined_out": [
+        "itemName#0",
+        "seller#0",
+        "tmp%4#0",
+        "tmp%4#0 (copy)"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "tmp%4#0",
+        "tmp%4#0 (copy)"
+      ]
+    },
+    "286": {
+      "op": "len",
+      "defined_out": [
+        "itemName#0",
+        "len%2#0",
+        "seller#0",
+        "tmp%4#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "tmp%4#0",
+        "len%2#0"
+      ]
+    },
+    "287": {
+      "op": "intc_1 // 8",
+      "defined_out": [
+        "8",
+        "itemName#0",
+        "len%2#0",
+        "seller#0",
+        "tmp%4#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "tmp%4#0",
+        "len%2#0",
+        "8"
+      ]
+    },
+    "288": {
+      "op": "==",
+      "defined_out": [
+        "eq%2#0",
+        "itemName#0",
+        "seller#0",
+        "tmp%4#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "tmp%4#0",
+        "eq%2#0"
+      ]
+    },
+    "289": {
+      "error": "invalid number of bytes for arc4.uint64",
+      "op": "assert // invalid number of bytes for arc4.uint64",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "tmp%4#0"
+      ]
+    },
+    "290": {
+      "op": "btoi",
+      "defined_out": [
+        "escrowType#0",
+        "itemName#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0"
+      ]
+    },
+    "291": {
+      "op": "txna ApplicationArgs 4",
+      "defined_out": [
+        "escrowType#0",
+        "itemName#0",
+        "seller#0",
+        "tmp%6#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "tmp%6#0"
+      ]
+    },
+    "294": {
+      "op": "dup",
+      "defined_out": [
+        "escrowType#0",
+        "itemName#0",
+        "seller#0",
+        "tmp%6#0",
+        "tmp%6#0 (copy)"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "tmp%6#0",
+        "tmp%6#0 (copy)"
+      ]
+    },
+    "295": {
+      "op": "len",
+      "defined_out": [
+        "escrowType#0",
+        "itemName#0",
+        "len%3#0",
+        "seller#0",
+        "tmp%6#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "tmp%6#0",
+        "len%3#0"
+      ]
+    },
+    "296": {
+      "op": "intc_1 // 8",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "tmp%6#0",
+        "len%3#0",
+        "8"
+      ]
+    },
+    "297": {
+      "op": "==",
+      "defined_out": [
+        "eq%3#0",
+        "escrowType#0",
+        "itemName#0",
+        "seller#0",
+        "tmp%6#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "tmp%6#0",
+        "eq%3#0"
+      ]
+    },
+    "298": {
+      "error": "invalid number of bytes for arc4.uint64",
+      "op": "assert // invalid number of bytes for arc4.uint64",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "tmp%6#0"
+      ]
+    },
+    "299": {
+      "op": "btoi",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowType#0",
+        "itemName#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0"
+      ]
+    },
+    "300": {
+      "op": "txna ApplicationArgs 5",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowType#0",
+        "itemName#0",
+        "seller#0",
+        "tmp%8#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "tmp%8#0"
+      ]
+    },
+    "303": {
+      "op": "dup",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowType#0",
+        "itemName#0",
+        "seller#0",
+        "tmp%8#0",
+        "tmp%8#0 (copy)"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "tmp%8#0",
+        "tmp%8#0 (copy)"
+      ]
+    },
+    "304": {
+      "op": "intc_0 // 0",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "tmp%8#0",
+        "tmp%8#0 (copy)",
+        "0"
+      ]
+    },
+    "305": {
+      "error": "invalid array length header",
+      "op": "extract_uint16 // on error: invalid array length header",
+      "defined_out": [
+        "aggregate%array_length%1#0",
+        "deadlineRounds#0",
+        "escrowType#0",
+        "itemName#0",
+        "seller#0",
+        "tmp%8#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "tmp%8#0",
+        "aggregate%array_length%1#0"
+      ]
+    },
+    "306": {
+      "op": "pushint 2 // 2",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "tmp%8#0",
+        "aggregate%array_length%1#0",
+        "2"
+      ]
+    },
+    "308": {
+      "op": "+",
+      "defined_out": [
+        "add%1#0",
+        "deadlineRounds#0",
+        "escrowType#0",
+        "itemName#0",
+        "seller#0",
+        "tmp%8#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "tmp%8#0",
+        "add%1#0"
+      ]
+    },
+    "309": {
+      "op": "dig 1",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "tmp%8#0",
+        "add%1#0",
+        "tmp%8#0 (copy)"
+      ]
+    },
+    "311": {
+      "op": "len",
+      "defined_out": [
+        "add%1#0",
+        "deadlineRounds#0",
+        "escrowType#0",
+        "itemName#0",
+        "len%4#0",
+        "seller#0",
+        "tmp%8#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "tmp%8#0",
+        "add%1#0",
+        "len%4#0"
+      ]
+    },
+    "312": {
+      "op": "==",
+      "defined_out": [
+        "deadlineRounds#0",
+        "eq%4#0",
+        "escrowType#0",
+        "itemName#0",
+        "seller#0",
+        "tmp%8#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "tmp%8#0",
+        "eq%4#0"
+      ]
+    },
+    "313": {
+      "error": "invalid number of bytes for arc4.dynamic_array<arc4.uint8>",
+      "op": "assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "tmp%8#0"
+      ]
+    },
+    "314": {
+      "op": "extract 2 0",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0"
+      ]
+    },
+    "317": {
+      "op": "txna ApplicationArgs 6",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%10#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "tmp%10#0"
+      ]
+    },
+    "320": {
+      "op": "dup",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%10#0",
+        "tmp%10#0 (copy)"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "tmp%10#0",
+        "tmp%10#0 (copy)"
+      ]
+    },
+    "321": {
+      "op": "len",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowType#0",
+        "itemName#0",
+        "len%5#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%10#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "tmp%10#0",
+        "len%5#0"
+      ]
+    },
+    "322": {
+      "op": "intc_1 // 8",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "tmp%10#0",
+        "len%5#0",
+        "8"
+      ]
+    },
+    "323": {
+      "op": "==",
+      "defined_out": [
+        "deadlineRounds#0",
+        "eq%5#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%10#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "tmp%10#0",
+        "eq%5#0"
+      ]
+    },
+    "324": {
+      "error": "invalid number of bytes for arc4.uint64",
+      "op": "assert // invalid number of bytes for arc4.uint64",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "tmp%10#0"
+      ]
+    },
+    "325": {
+      "op": "btoi",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowContractApp#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0"
+      ]
+    },
+    "326": {
+      "op": "dig 3",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowContractApp#0",
+        "escrowType#0",
+        "escrowType#0 (copy)",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "escrowType#0 (copy)"
+      ]
+    },
+    "328": {
+      "op": "pushint 2 // 2",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "escrowType#0 (copy)",
+        "2"
+      ]
+    },
+    "330": {
+      "op": "<=",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowContractApp#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%0#1"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "tmp%0#1"
+      ]
+    },
+    "331": {
+      "error": "Invalid escrow type (must be 0, 1, or 2)",
+      "op": "assert // Invalid escrow type (must be 0, 1, or 2)",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0"
+      ]
+    },
+    "332": {
+      "op": "dig 2",
+      "defined_out": [
+        "deadlineRounds#0",
+        "deadlineRounds#0 (copy)",
+        "escrowContractApp#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "deadlineRounds#0 (copy)"
+      ]
+    },
+    "334": {
+      "error": "Deadline rounds must be greater than 0",
+      "op": "assert // Deadline rounds must be greater than 0",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0"
+      ]
+    },
+    "335": {
+      "op": "dig 5",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "seller#0 (copy)"
+      ]
+    },
+    "337": {
+      "op": "global ZeroAddress",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowContractApp#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "seller#0 (copy)",
+        "tmp%2#1"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "seller#0 (copy)",
+        "tmp%2#1"
+      ]
+    },
+    "339": {
+      "op": "!=",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowContractApp#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%3#1"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "tmp%3#1"
+      ]
+    },
+    "340": {
+      "error": "Seller address must be provided",
+      "op": "assert // Seller address must be provided",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0"
+      ]
+    },
+    "341": {
+      "op": "global Round",
+      "defined_out": [
+        "deadlineRounds#0",
+        "escrowContractApp#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%4#1"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "deadlineRounds#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "tmp%4#1"
+      ]
+    },
+    "343": {
+      "op": "uncover 3",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "tmp%4#1",
+        "deadlineRounds#0"
+      ]
+    },
+    "345": {
+      "op": "+",
+      "defined_out": [
+        "deadlineRound#0",
+        "escrowContractApp#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "deadlineRound#0"
+      ]
+    },
+    "346": {
+      "op": "itxn_begin"
+    },
+    "347": {
+      "op": "dig 1",
+      "defined_out": [
+        "deadlineRound#0",
+        "escrowContractApp#0",
+        "escrowContractApp#0 (copy)",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "deadlineRound#0",
+        "escrowContractApp#0 (copy)"
+      ]
+    },
+    "349": {
+      "op": "app_params_get AppApprovalProgram",
+      "defined_out": [
+        "check%0#0",
+        "deadlineRound#0",
+        "escrowContractApp#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "value%0#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "deadlineRound#0",
+        "value%0#0",
+        "check%0#0"
+      ]
+    },
+    "351": {
+      "error": "application exists",
+      "op": "assert // application exists",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "requirementsHash#0",
+        "escrowContractApp#0",
+        "deadlineRound#0",
+        "value%0#0"
+      ]
+    },
+    "352": {
+      "op": "uncover 2",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "requirementsHash#0",
+        "deadlineRound#0",
+        "value%0#0",
+        "escrowContractApp#0"
+      ]
+    },
+    "354": {
+      "op": "app_params_get AppClearStateProgram",
+      "defined_out": [
+        "check%1#0",
+        "deadlineRound#0",
+        "escrowType#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "value%0#0",
+        "value%1#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "requirementsHash#0",
+        "deadlineRound#0",
+        "value%0#0",
+        "value%1#0",
+        "check%1#0"
+      ]
+    },
+    "356": {
+      "error": "application exists",
+      "op": "assert // application exists",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "escrowType#0",
+        "requirementsHash#0",
+        "deadlineRound#0",
+        "value%0#0",
+        "value%1#0"
+      ]
+    },
+    "357": {
+      "op": "uncover 4",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "deadlineRound#0",
+        "value%0#0",
+        "value%1#0",
+        "escrowType#0"
+      ]
+    },
+    "359": {
+      "op": "itob",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "deadlineRound#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0"
+      ]
+    },
+    "360": {
+      "op": "uncover 3",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "deadlineRound#0"
+      ]
+    },
+    "362": {
+      "op": "itob",
+      "defined_out": [
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "value%0#0",
+        "value%1#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1"
+      ]
+    },
+    "363": {
+      "op": "intc_0 // 0",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "0"
+      ]
+    },
+    "364": {
+      "op": "bytec_0 // \"platform_fee_bps\"",
+      "defined_out": [
+        "\"platform_fee_bps\"",
+        "0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "value%0#0",
+        "value%1#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "0",
+        "\"platform_fee_bps\""
+      ]
+    },
+    "365": {
+      "op": "app_global_get_ex",
+      "defined_out": [
+        "itemName#0",
+        "maybe_exists%0#0",
+        "maybe_value%0#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "value%0#0",
+        "value%1#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "maybe_value%0#0",
+        "maybe_exists%0#0"
+      ]
+    },
+    "366": {
+      "error": "check GlobalState exists",
+      "op": "assert // check GlobalState exists",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "maybe_value%0#0"
+      ]
+    },
+    "367": {
+      "op": "itob",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0"
+      ]
+    },
+    "368": {
+      "op": "intc_0 // 0",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "0"
+      ]
+    },
+    "369": {
+      "op": "bytec_3 // \"platform_treasury\"",
+      "defined_out": [
+        "\"platform_treasury\"",
+        "0",
+        "itemName#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "value%0#0",
+        "value%1#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "0",
+        "\"platform_treasury\""
+      ]
+    },
+    "370": {
+      "op": "app_global_get_ex",
+      "defined_out": [
+        "itemName#0",
+        "maybe_exists%1#0",
+        "maybe_value%1#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "value%0#0",
+        "value%1#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_exists%1#0"
+      ]
+    },
+    "371": {
+      "error": "check GlobalState exists",
+      "op": "assert // check GlobalState exists",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0"
+      ]
+    },
+    "372": {
+      "op": "intc_0 // 0",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "0"
+      ]
+    },
+    "373": {
+      "op": "bytec_2 // \"arbiter_address\"",
+      "defined_out": [
+        "\"arbiter_address\"",
+        "0",
+        "itemName#0",
+        "maybe_value%1#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "value%0#0",
+        "value%1#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "0",
+        "\"arbiter_address\""
+      ]
+    },
+    "374": {
+      "op": "app_global_get_ex",
+      "defined_out": [
+        "itemName#0",
+        "maybe_exists%2#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "value%0#0",
+        "value%1#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "maybe_exists%2#0"
+      ]
+    },
+    "375": {
+      "error": "check GlobalState exists",
+      "op": "assert // check GlobalState exists",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "376": {
+      "op": "dig 9",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "seller#0 (copy)"
+      ]
+    },
+    "378": {
+      "op": "itxn_field Accounts",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "380": {
+      "op": "dig 1",
+      "defined_out": [
+        "itemName#0",
+        "maybe_value%1#0",
+        "maybe_value%1#0 (copy)",
+        "maybe_value%2#0",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "value%0#0",
+        "value%1#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "maybe_value%1#0 (copy)"
+      ]
+    },
+    "382": {
+      "op": "itxn_field Accounts",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "384": {
+      "op": "dup",
+      "defined_out": [
+        "itemName#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "maybe_value%2#0 (copy)",
+        "requirementsHash#0",
+        "seller#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "value%0#0",
+        "value%1#0"
+      ],
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "maybe_value%2#0 (copy)"
+      ]
+    },
+    "385": {
+      "op": "itxn_field Accounts",
+      "stack_out": [
+        "seller#0",
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "387": {
+      "op": "uncover 9",
+      "stack_out": [
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "seller#0"
+      ]
+    },
+    "389": {
+      "op": "itxn_field ApplicationArgs",
+      "stack_out": [
+        "itemName#0",
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "391": {
+      "op": "uncover 8",
+      "stack_out": [
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "itemName#0"
+      ]
+    },
+    "393": {
+      "op": "itxn_field ApplicationArgs",
+      "stack_out": [
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%6#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "395": {
+      "op": "uncover 4",
+      "stack_out": [
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "tmp%6#0"
+      ]
+    },
+    "397": {
+      "op": "itxn_field ApplicationArgs",
+      "stack_out": [
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%7#1",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "399": {
+      "op": "uncover 3",
+      "stack_out": [
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "tmp%7#1"
+      ]
+    },
+    "401": {
+      "op": "itxn_field ApplicationArgs",
+      "stack_out": [
+        "requirementsHash#0",
+        "value%0#0",
+        "value%1#0",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "403": {
+      "op": "uncover 5",
+      "stack_out": [
+        "value%0#0",
+        "value%1#0",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "requirementsHash#0"
+      ]
+    },
+    "405": {
+      "op": "itxn_field ApplicationArgs",
+      "stack_out": [
+        "value%0#0",
+        "value%1#0",
+        "tmp%8#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "407": {
+      "op": "uncover 2",
+      "stack_out": [
+        "value%0#0",
+        "value%1#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "tmp%8#0"
+      ]
+    },
+    "409": {
+      "op": "itxn_field ApplicationArgs",
+      "stack_out": [
+        "value%0#0",
+        "value%1#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "411": {
+      "op": "swap",
+      "stack_out": [
+        "value%0#0",
+        "value%1#0",
+        "maybe_value%2#0",
+        "maybe_value%1#0"
+      ]
+    },
+    "412": {
+      "op": "itxn_field ApplicationArgs",
+      "stack_out": [
+        "value%0#0",
+        "value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "414": {
+      "op": "itxn_field ApplicationArgs",
+      "stack_out": [
+        "value%0#0",
+        "value%1#0"
+      ]
+    },
+    "416": {
+      "op": "intc_1 // 8",
+      "stack_out": [
+        "value%0#0",
+        "value%1#0",
+        "8"
+      ]
+    },
+    "417": {
+      "op": "itxn_field GlobalNumByteSlice",
+      "stack_out": [
+        "value%0#0",
+        "value%1#0"
+      ]
+    },
+    "419": {
+      "op": "pushint 12 // 12",
+      "defined_out": [
+        "12",
+        "value%0#0",
+        "value%1#0"
+      ],
+      "stack_out": [
+        "value%0#0",
+        "value%1#0",
+        "12"
+      ]
+    },
+    "421": {
+      "op": "itxn_field GlobalNumUint",
+      "stack_out": [
+        "value%0#0",
+        "value%1#0"
+      ]
+    },
+    "423": {
+      "op": "itxn_field ClearStateProgramPages",
+      "stack_out": [
+        "value%0#0"
+      ]
+    },
+    "425": {
+      "op": "itxn_field ApprovalProgramPages",
+      "stack_out": []
+    },
+    "427": {
+      "op": "pushint 6 // 6",
+      "defined_out": [
+        "6"
+      ],
+      "stack_out": [
+        "6"
+      ]
+    },
+    "429": {
+      "op": "itxn_field TypeEnum",
+      "stack_out": []
+    },
+    "431": {
+      "op": "intc_0 // 0",
+      "stack_out": [
+        "0"
+      ]
+    },
+    "432": {
+      "op": "itxn_field Fee",
+      "stack_out": []
+    },
+    "434": {
+      "op": "itxn_submit"
+    },
+    "435": {
+      "op": "itxn CreatedApplicationID",
+      "defined_out": [
+        "newEscrow.CreatedApplicationID#0"
+      ],
+      "stack_out": [
+        "newEscrow.CreatedApplicationID#0"
+      ]
+    },
+    "437": {
+      "op": "intc_0 // 0",
+      "stack_out": [
+        "newEscrow.CreatedApplicationID#0",
+        "0"
+      ]
+    },
+    "438": {
+      "op": "bytec_1 // \"total_escrows\"",
+      "defined_out": [
+        "\"total_escrows\"",
+        "0",
+        "newEscrow.CreatedApplicationID#0"
+      ],
+      "stack_out": [
+        "newEscrow.CreatedApplicationID#0",
+        "0",
+        "\"total_escrows\""
+      ]
+    },
+    "439": {
+      "op": "app_global_get_ex",
+      "defined_out": [
+        "maybe_exists%5#0",
+        "maybe_value%5#0",
+        "newEscrow.CreatedApplicationID#0"
+      ],
+      "stack_out": [
+        "newEscrow.CreatedApplicationID#0",
+        "maybe_value%5#0",
+        "maybe_exists%5#0"
+      ]
+    },
+    "440": {
+      "error": "check GlobalState exists",
+      "op": "assert // check GlobalState exists",
+      "stack_out": [
+        "newEscrow.CreatedApplicationID#0",
+        "maybe_value%5#0"
+      ]
+    },
+    "441": {
+      "op": "intc_2 // 1",
+      "defined_out": [
+        "1",
+        "maybe_value%5#0",
+        "newEscrow.CreatedApplicationID#0"
+      ],
+      "stack_out": [
+        "newEscrow.CreatedApplicationID#0",
+        "maybe_value%5#0",
+        "1"
+      ]
+    },
+    "442": {
+      "op": "+",
+      "defined_out": [
+        "newEscrow.CreatedApplicationID#0",
+        "tmp%9#1"
+      ],
+      "stack_out": [
+        "newEscrow.CreatedApplicationID#0",
+        "tmp%9#1"
+      ]
+    },
+    "443": {
+      "op": "bytec_1 // \"total_escrows\"",
+      "stack_out": [
+        "newEscrow.CreatedApplicationID#0",
+        "tmp%9#1",
+        "\"total_escrows\""
+      ]
+    },
+    "444": {
+      "op": "swap",
+      "stack_out": [
+        "newEscrow.CreatedApplicationID#0",
+        "\"total_escrows\"",
+        "tmp%9#1"
+      ]
+    },
+    "445": {
+      "op": "app_global_put",
+      "stack_out": [
+        "newEscrow.CreatedApplicationID#0"
+      ]
+    },
+    "446": {
+      "op": "itob",
+      "defined_out": [
+        "aggregate%val_as_bytes%0#0"
+      ],
+      "stack_out": [
+        "aggregate%val_as_bytes%0#0"
+      ]
+    },
+    "447": {
+      "op": "bytec 4 // 0x151f7c75",
+      "defined_out": [
+        "0x151f7c75",
+        "aggregate%val_as_bytes%0#0"
+      ],
+      "stack_out": [
+        "aggregate%val_as_bytes%0#0",
+        "0x151f7c75"
+      ]
+    },
+    "449": {
+      "op": "swap",
+      "stack_out": [
+        "0x151f7c75",
+        "aggregate%val_as_bytes%0#0"
+      ]
+    },
+    "450": {
+      "op": "concat",
+      "defined_out": [
+        "tmp%14#0"
+      ],
+      "stack_out": [
+        "tmp%14#0"
+      ]
+    },
+    "451": {
+      "op": "log",
+      "stack_out": []
+    },
+    "452": {
+      "op": "intc_2 // 1",
+      "stack_out": [
+        "1"
+      ]
+    },
+    "453": {
+      "op": "return",
+      "stack_out": []
+    },
+    "454": {
+      "subroutine": "src/escrow_factory.algo.ts::EscrowFactory.getPlatformConfig[routing]",
+      "params": {},
+      "block": "getPlatformConfig",
+      "stack_in": [],
+      "op": "intc_0 // 0",
+      "defined_out": [
+        "0"
+      ],
+      "stack_out": [
+        "0"
+      ]
+    },
+    "455": {
+      "op": "bytec_3 // \"platform_treasury\"",
+      "defined_out": [
+        "\"platform_treasury\"",
+        "0"
+      ],
+      "stack_out": [
+        "0",
+        "\"platform_treasury\""
+      ]
+    },
+    "456": {
+      "op": "app_global_get_ex",
+      "defined_out": [
+        "maybe_exists%0#0",
+        "maybe_value%0#0"
+      ],
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_exists%0#0"
+      ]
+    },
+    "457": {
+      "error": "check GlobalState exists",
+      "op": "assert // check GlobalState exists",
+      "stack_out": [
+        "maybe_value%0#0"
+      ]
+    },
+    "458": {
+      "op": "intc_0 // 0",
+      "stack_out": [
+        "maybe_value%0#0",
+        "0"
+      ]
+    },
+    "459": {
+      "op": "bytec_0 // \"platform_fee_bps\"",
+      "defined_out": [
+        "\"platform_fee_bps\"",
+        "0",
+        "maybe_value%0#0"
+      ],
+      "stack_out": [
+        "maybe_value%0#0",
+        "0",
+        "\"platform_fee_bps\""
+      ]
+    },
+    "460": {
+      "op": "app_global_get_ex",
+      "defined_out": [
+        "maybe_exists%1#0",
+        "maybe_value%0#0",
+        "maybe_value%1#0"
+      ],
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "maybe_exists%1#0"
+      ]
+    },
+    "461": {
+      "error": "check GlobalState exists",
+      "op": "assert // check GlobalState exists",
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%1#0"
+      ]
+    },
+    "462": {
+      "op": "intc_0 // 0",
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "0"
+      ]
+    },
+    "463": {
+      "op": "bytec_1 // \"total_escrows\"",
+      "defined_out": [
+        "\"total_escrows\"",
+        "0",
+        "maybe_value%0#0",
+        "maybe_value%1#0"
+      ],
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "0",
+        "\"total_escrows\""
+      ]
+    },
+    "464": {
+      "op": "app_global_get_ex",
+      "defined_out": [
+        "maybe_exists%2#0",
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ],
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "maybe_exists%2#0"
+      ]
+    },
+    "465": {
+      "error": "check GlobalState exists",
+      "op": "assert // check GlobalState exists",
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "466": {
+      "op": "intc_0 // 0",
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "0"
+      ]
+    },
+    "467": {
+      "op": "bytec_2 // \"arbiter_address\"",
+      "defined_out": [
+        "\"arbiter_address\"",
+        "0",
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0"
+      ],
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "0",
+        "\"arbiter_address\""
+      ]
+    },
+    "468": {
+      "op": "app_global_get_ex",
+      "defined_out": [
+        "maybe_exists%3#0",
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "maybe_value%3#0"
+      ],
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "maybe_value%3#0",
+        "maybe_exists%3#0"
+      ]
+    },
+    "469": {
+      "error": "check GlobalState exists",
+      "op": "assert // check GlobalState exists",
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%1#0",
+        "maybe_value%2#0",
+        "maybe_value%3#0"
+      ]
+    },
+    "470": {
+      "op": "uncover 2",
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%2#0",
+        "maybe_value%3#0",
+        "maybe_value%1#0"
+      ]
+    },
+    "472": {
+      "op": "itob",
+      "defined_out": [
+        "aggregate%val_as_bytes%0#0",
+        "maybe_value%0#0",
+        "maybe_value%2#0",
+        "maybe_value%3#0"
+      ],
+      "stack_out": [
+        "maybe_value%0#0",
+        "maybe_value%2#0",
+        "maybe_value%3#0",
+        "aggregate%val_as_bytes%0#0"
+      ]
+    },
+    "473": {
+      "op": "uncover 3",
+      "stack_out": [
+        "maybe_value%2#0",
+        "maybe_value%3#0",
+        "aggregate%val_as_bytes%0#0",
+        "maybe_value%0#0"
+      ]
+    },
+    "475": {
+      "op": "swap",
+      "stack_out": [
+        "maybe_value%2#0",
+        "maybe_value%3#0",
+        "maybe_value%0#0",
+        "aggregate%val_as_bytes%0#0"
+      ]
+    },
+    "476": {
+      "op": "concat",
+      "defined_out": [
+        "aggregate%head%1#0",
+        "maybe_value%2#0",
+        "maybe_value%3#0"
+      ],
+      "stack_out": [
+        "maybe_value%2#0",
+        "maybe_value%3#0",
+        "aggregate%head%1#0"
+      ]
+    },
+    "477": {
+      "op": "uncover 2",
+      "stack_out": [
+        "maybe_value%3#0",
+        "aggregate%head%1#0",
+        "maybe_value%2#0"
+      ]
+    },
+    "479": {
+      "op": "itob",
+      "defined_out": [
+        "aggregate%head%1#0",
+        "aggregate%val_as_bytes%1#0",
+        "maybe_value%3#0"
+      ],
+      "stack_out": [
+        "maybe_value%3#0",
+        "aggregate%head%1#0",
+        "aggregate%val_as_bytes%1#0"
+      ]
+    },
+    "480": {
+      "op": "concat",
+      "defined_out": [
+        "aggregate%head%2#0",
+        "maybe_value%3#0"
+      ],
+      "stack_out": [
+        "maybe_value%3#0",
+        "aggregate%head%2#0"
+      ]
+    },
+    "481": {
+      "op": "swap",
+      "stack_out": [
+        "aggregate%head%2#0",
+        "maybe_value%3#0"
+      ]
+    },
+    "482": {
+      "op": "concat",
+      "defined_out": [
+        "aggregate%head%3#0"
+      ],
+      "stack_out": [
+        "aggregate%head%3#0"
+      ]
+    },
+    "483": {
+      "op": "bytec 4 // 0x151f7c75",
+      "defined_out": [
+        "0x151f7c75",
+        "aggregate%head%3#0"
+      ],
+      "stack_out": [
+        "aggregate%head%3#0",
+        "0x151f7c75"
+      ]
+    },
+    "485": {
+      "op": "swap",
+      "stack_out": [
+        "0x151f7c75",
+        "aggregate%head%3#0"
+      ]
+    },
+    "486": {
+      "op": "concat",
+      "defined_out": [
+        "tmp%5#0"
+      ],
+      "stack_out": [
+        "tmp%5#0"
+      ]
+    },
+    "487": {
+      "op": "log",
+      "stack_out": []
+    },
+    "488": {
+      "op": "intc_2 // 1",
+      "defined_out": [
+        "1"
+      ],
+      "stack_out": [
+        "1"
+      ]
+    },
+    "489": {
+      "op": "return",
+      "stack_out": []
+    },
+    "490": {
+      "subroutine": "src/escrow_factory.algo.ts::EscrowFactory.updateFee[routing]",
+      "params": {},
+      "block": "updateFee",
+      "stack_in": [],
+      "op": "txna ApplicationArgs 1",
+      "defined_out": [
+        "tmp%0#0"
+      ],
+      "stack_out": [
+        "tmp%0#0"
+      ]
+    },
+    "493": {
+      "op": "dup",
+      "defined_out": [
+        "tmp%0#0",
+        "tmp%0#0 (copy)"
+      ],
+      "stack_out": [
+        "tmp%0#0",
+        "tmp%0#0 (copy)"
+      ]
+    },
+    "494": {
+      "op": "len",
+      "defined_out": [
+        "len%0#0",
+        "tmp%0#0"
+      ],
+      "stack_out": [
+        "tmp%0#0",
+        "len%0#0"
+      ]
+    },
+    "495": {
+      "op": "intc_1 // 8",
+      "defined_out": [
+        "8",
+        "len%0#0",
+        "tmp%0#0"
+      ],
+      "stack_out": [
+        "tmp%0#0",
+        "len%0#0",
+        "8"
+      ]
+    },
+    "496": {
+      "op": "==",
+      "defined_out": [
+        "eq%0#0",
+        "tmp%0#0"
+      ],
+      "stack_out": [
+        "tmp%0#0",
+        "eq%0#0"
+      ]
+    },
+    "497": {
+      "error": "invalid number of bytes for arc4.uint64",
+      "op": "assert // invalid number of bytes for arc4.uint64",
+      "stack_out": [
+        "tmp%0#0"
+      ]
+    },
+    "498": {
+      "op": "btoi",
+      "defined_out": [
+        "newFeeBps#0"
+      ],
+      "stack_out": [
+        "newFeeBps#0"
+      ]
+    },
+    "499": {
+      "op": "txn Sender",
+      "defined_out": [
+        "newFeeBps#0",
+        "tmp%0#1"
+      ],
+      "stack_out": [
+        "newFeeBps#0",
+        "tmp%0#1"
+      ]
+    },
+    "501": {
+      "op": "global CreatorAddress",
+      "defined_out": [
+        "newFeeBps#0",
+        "tmp%0#1",
+        "tmp%1#1"
+      ],
+      "stack_out": [
+        "newFeeBps#0",
+        "tmp%0#1",
+        "tmp%1#1"
+      ]
+    },
+    "503": {
+      "op": "==",
+      "defined_out": [
+        "newFeeBps#0",
+        "tmp%2#0"
+      ],
+      "stack_out": [
+        "newFeeBps#0",
+        "tmp%2#0"
+      ]
+    },
+    "504": {
+      "error": "Only the creator can update the platform fee",
+      "op": "assert // Only the creator can update the platform fee",
+      "stack_out": [
+        "newFeeBps#0"
+      ]
+    },
+    "505": {
+      "op": "dup",
+      "defined_out": [
+        "newFeeBps#0",
+        "newFeeBps#0 (copy)"
+      ],
+      "stack_out": [
+        "newFeeBps#0",
+        "newFeeBps#0 (copy)"
+      ]
+    },
+    "506": {
+      "op": "pushint 1000 // 1000",
+      "defined_out": [
+        "1000",
+        "newFeeBps#0",
+        "newFeeBps#0 (copy)"
+      ],
+      "stack_out": [
+        "newFeeBps#0",
+        "newFeeBps#0 (copy)",
+        "1000"
+      ]
+    },
+    "509": {
+      "op": "<=",
+      "defined_out": [
+        "newFeeBps#0",
+        "tmp%3#0"
+      ],
+      "stack_out": [
+        "newFeeBps#0",
+        "tmp%3#0"
+      ]
+    },
+    "510": {
+      "error": "Fee cannot exceed 1000 basis points (10%)",
+      "op": "assert // Fee cannot exceed 1000 basis points (10%)",
+      "stack_out": [
+        "newFeeBps#0"
+      ]
+    },
+    "511": {
+      "op": "bytec_0 // \"platform_fee_bps\"",
+      "defined_out": [
+        "\"platform_fee_bps\"",
+        "newFeeBps#0"
+      ],
+      "stack_out": [
+        "newFeeBps#0",
+        "\"platform_fee_bps\""
+      ]
+    },
+    "512": {
+      "op": "swap",
+      "stack_out": [
+        "\"platform_fee_bps\"",
+        "newFeeBps#0"
+      ]
+    },
+    "513": {
+      "op": "app_global_put",
+      "stack_out": []
+    },
+    "514": {
+      "op": "intc_2 // 1",
+      "defined_out": [
+        "1"
+      ],
+      "stack_out": [
+        "1"
+      ]
+    },
+    "515": {
+      "op": "return",
+      "stack_out": []
+    },
+    "516": {
+      "subroutine": "src/escrow_factory.algo.ts::EscrowFactory.updateArbiter[routing]",
+      "params": {},
+      "block": "updateArbiter",
+      "stack_in": [],
+      "op": "txna ApplicationArgs 1",
+      "defined_out": [
+        "newArbiter#0"
+      ],
+      "stack_out": [
+        "newArbiter#0"
+      ]
+    },
+    "519": {
+      "op": "dup",
+      "defined_out": [
+        "newArbiter#0",
+        "newArbiter#0 (copy)"
+      ],
+      "stack_out": [
+        "newArbiter#0",
+        "newArbiter#0 (copy)"
+      ]
+    },
+    "520": {
+      "op": "len",
+      "defined_out": [
+        "len%0#0",
+        "newArbiter#0"
+      ],
+      "stack_out": [
+        "newArbiter#0",
+        "len%0#0"
+      ]
+    },
+    "521": {
+      "op": "intc_3 // 32",
+      "defined_out": [
+        "32",
+        "len%0#0",
+        "newArbiter#0"
+      ],
+      "stack_out": [
+        "newArbiter#0",
+        "len%0#0",
+        "32"
+      ]
+    },
+    "522": {
+      "op": "==",
+      "defined_out": [
+        "eq%0#0",
+        "newArbiter#0"
+      ],
+      "stack_out": [
+        "newArbiter#0",
+        "eq%0#0"
+      ]
+    },
+    "523": {
+      "error": "invalid number of bytes for arc4.static_array<arc4.uint8, 32>",
+      "op": "assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>",
+      "stack_out": [
+        "newArbiter#0"
+      ]
+    },
+    "524": {
+      "op": "txn Sender",
+      "defined_out": [
+        "newArbiter#0",
+        "tmp%0#1"
+      ],
+      "stack_out": [
+        "newArbiter#0",
+        "tmp%0#1"
+      ]
+    },
+    "526": {
+      "op": "global CreatorAddress",
+      "defined_out": [
+        "newArbiter#0",
+        "tmp%0#1",
+        "tmp%1#1"
+      ],
+      "stack_out": [
+        "newArbiter#0",
+        "tmp%0#1",
+        "tmp%1#1"
+      ]
+    },
+    "528": {
+      "op": "==",
+      "defined_out": [
+        "newArbiter#0",
+        "tmp%2#0"
+      ],
+      "stack_out": [
+        "newArbiter#0",
+        "tmp%2#0"
+      ]
+    },
+    "529": {
+      "error": "Only the creator can update the arbiter",
+      "op": "assert // Only the creator can update the arbiter",
+      "stack_out": [
+        "newArbiter#0"
+      ]
+    },
+    "530": {
+      "op": "dup"
+    },
+    "531": {
+      "op": "global ZeroAddress",
+      "defined_out": [
+        "newArbiter#0",
+        "newArbiter#0 (copy)",
+        "tmp%3#0"
+      ],
+      "stack_out": [
+        "newArbiter#0",
+        "newArbiter#0 (copy)",
+        "tmp%3#0"
+      ]
+    },
+    "533": {
+      "op": "!=",
+      "defined_out": [
+        "newArbiter#0",
+        "tmp%4#0"
+      ],
+      "stack_out": [
+        "newArbiter#0",
+        "tmp%4#0"
+      ]
+    },
+    "534": {
+      "error": "Arbiter address must be valid",
+      "op": "assert // Arbiter address must be valid",
+      "stack_out": [
+        "newArbiter#0"
+      ]
+    },
+    "535": {
+      "op": "bytec_2 // \"arbiter_address\"",
+      "defined_out": [
+        "\"arbiter_address\"",
+        "newArbiter#0"
+      ],
+      "stack_out": [
+        "newArbiter#0",
+        "\"arbiter_address\""
+      ]
+    },
+    "536": {
+      "op": "swap",
+      "stack_out": [
+        "\"arbiter_address\"",
+        "newArbiter#0"
+      ]
+    },
+    "537": {
+      "op": "app_global_put",
+      "stack_out": []
+    },
+    "538": {
+      "op": "intc_2 // 1",
+      "defined_out": [
+        "1"
+      ],
+      "stack_out": [
+        "1"
+      ]
+    },
+    "539": {
+      "op": "return",
+      "stack_out": []
+    }
+  }
+}
