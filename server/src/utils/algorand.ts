@@ -54,7 +54,25 @@ export const buildUnsignedFundingTransaction = async (params: {
   amount: number;
   note?: string;
 }) => {
-  const suggestedParams = await algodClient.getTransactionParams().do();
+  let suggestedParams: any = null;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      suggestedParams = await algodClient.getTransactionParams().do();
+      break;
+    } catch (err: any) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < 2) {
+        await sleep(700);
+      }
+    }
+  }
+
+  if (!suggestedParams) {
+    throw new Error(lastError?.message || 'Unable to fetch Algorand suggested transaction params');
+  }
+
   const noteBytes = params.note ? new Uint8Array(Buffer.from(params.note, 'utf-8')) : undefined;
 
   const transaction = algosdk.makePaymentTxnWithSuggestedParamsFromObject({

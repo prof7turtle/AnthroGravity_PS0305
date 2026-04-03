@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import escrowRoutes from './routes/escrow';
+import webhookRoutes from './routes/webhook';
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/escrow', escrowRoutes);
+app.use('/api/webhook', webhookRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

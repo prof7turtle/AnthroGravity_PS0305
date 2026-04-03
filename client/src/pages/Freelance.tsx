@@ -226,7 +226,9 @@ const Freelance = () => {
         `Escrow funded and verified. Tx: ${updated.txIds.fund} | Explorer: https://testnet.algoexplorer.io/tx/${updated.txIds.fund}`,
       );
     } catch (err: any) {
-      setServerError(err?.response?.data?.message || 'Failed to fund escrow.');
+      const backendMessage = err?.response?.data?.message;
+      const backendError = err?.response?.data?.error;
+      setServerError(backendMessage ? `${backendMessage}${backendError ? ` (${backendError})` : ''}` : 'Failed to fund escrow.');
     } finally {
       setIsBusy(false);
     }

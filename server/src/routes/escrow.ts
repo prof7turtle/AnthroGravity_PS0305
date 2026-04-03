@@ -3,17 +3,37 @@ import crypto from 'crypto';
 import Escrow, { EscrowState, EscrowType } from '../models/Escrow';
 import TxRegistry from '../models/TxRegistry';
 import {
-  buildUnsignedFundingTransaction,
-  findFundingTransaction,
-  isValidAlgorandAddress,
-  verifyAlgorandTransactionWithRetry,
-} from '../utils/algorand';
+  discoverFundingTransaction,
+  prepareFundingTransaction,
+  toLoraAppUrl,
+  toTransactionExplorerUrl,
+  verifyFundingTransaction,
+} from '../services/algorand.service';
+import { evaluateDeliverables } from '../services/ai.service';
+import { toEscrowPublicView } from '../services/indexer.service';
+import { dispatchEscrowWebhook, registerWebhook } from '../services/webhook.service';
+import { isValidAlgorandAddress } from '../utils/algorand';
 
 const router = Router();
 
 const makeEscrowId = () => `AE-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 const makeMockTxId = (prefix: string) => `${prefix.toUpperCase()}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 const normalizeAddress = (value: string) => value.trim().toUpperCase();
+
+const sanitizeAddress = (value: unknown) => {
+  const candidate = String(value || '').trim();
+  if (!candidate || /REPLACE_WITH_/i.test(candidate)) return '';
+  return candidate;
+};
+
+const resolveReceiverAddress = (escrow: any) => {
+  const escrowAddress = sanitizeAddress(escrow?.appAddress);
+  const envAddress = sanitizeAddress(process.env.ESCROW_RECEIVER_ADDRESS);
+
+  if (escrowAddress && isValidAlgorandAddress(escrowAddress)) return escrowAddress;
+  if (envAddress && isValidAlgorandAddress(envAddress)) return envAddress;
+  return '';
+};
 
 const toEscrowType = (value: unknown): EscrowType => {
   const normalized = String(value || 'FREELANCE').toUpperCase();
@@ -73,33 +93,58 @@ const ensureTxIds = (escrow: any) => {
   return escrow.txIds;
 };
 
+const dispatchStateWebhook = async (escrow: any, txId: string) => {
+  await dispatchEscrowWebhook({
+    escrowId: escrow.escrowId,
+    appId: escrow.appId ?? null,
+    newState: escrow.state,
+    txId,
+    timestamp: new Date().toISOString(),
+  });
+};
+
+const isSpecResponse = (req: any) => String(req.query?.format || '').toLowerCase() === 'spec';
+
+const toSpecEscrow = (escrow: any) => {
+  const publicView = toEscrowPublicView(escrow);
+  return {
+    appId: publicView.appId ?? null,
+    escrowAddress: publicView.escrowAddress,
+    buyer: escrow.buyerAddress,
+    seller: escrow.sellerAddress,
+    amount: Number(escrow.amount) / 1_000_000,
+    state: escrow.state,
+    stateName: escrow.state,
+    escrowType: escrow.escrowType,
+    itemName: escrow.itemName,
+    deadlineRound: publicView.roundsRemaining,
+    currentRound: publicView.currentRound,
+    roundsRemaining: publicView.roundsRemaining,
+    aiScore: escrow.aiScore,
+    aiVerdictNote: escrow.aiVerdict?.verdict || '',
+    loraUrl: toLoraAppUrl(escrow.appId),
+    txHistory: escrow.activityLogs || [],
+  };
+};
+
 const tryReconcileFunding = async (escrow: any) => {
   if (escrow.state !== 'CREATED') {
     return { reconciled: false, reason: `No reconciliation needed in ${escrow.state} state` };
   }
 
-  if (!escrow.buyerAddress) {
-    return { reconciled: false, reason: 'Escrow buyer is missing; cannot reconcile funding' };
-  }
-
-  if (!isValidAlgorandAddress(escrow.buyerAddress)) {
+  if (!escrow.buyerAddress || !isValidAlgorandAddress(escrow.buyerAddress)) {
     return { reconciled: false, reason: 'Escrow buyer address is invalid for on-chain reconciliation' };
   }
 
-  const expectedReceiver = escrow.appAddress || process.env.ESCROW_RECEIVER_ADDRESS || '';
+  const expectedReceiver = resolveReceiverAddress(escrow);
   if (!expectedReceiver) {
-    return { reconciled: false, reason: 'Escrow receiver address is not configured' };
-  }
-
-  if (!isValidAlgorandAddress(expectedReceiver)) {
     return { reconciled: false, reason: 'Escrow receiver address is invalid for on-chain reconciliation' };
   }
 
-  const found = await findFundingTransaction({
+  const found = await discoverFundingTransaction({
     sender: escrow.buyerAddress,
     receiver: expectedReceiver,
     amount: escrow.amount,
-    maxResults: 30,
   });
 
   if (!found?.txId) {
@@ -127,6 +172,7 @@ const tryReconcileFunding = async (escrow: any) => {
   }
 
   await escrow.save();
+  await dispatchStateWebhook(escrow, found.txId);
   return { reconciled: true, reason: 'Funding reconciliation complete' };
 };
 
@@ -142,6 +188,7 @@ router.post('/create', async (req, res) => {
       deadlineHours = 72,
       requirements = [],
       appAddress = process.env.ESCROW_RECEIVER_ADDRESS || '',
+      webhookUrl,
     } = req.body;
 
     if (!sellerAddress) {
@@ -168,9 +215,10 @@ router.post('/create', async (req, res) => {
       .digest('hex');
 
     const createTxId = makeMockTxId('create');
+    const safeAppAddress = sanitizeAddress(appAddress);
     const escrow = new Escrow({
       escrowId: makeEscrowId(),
-      appAddress,
+      appAddress: safeAppAddress,
       state: 'CREATED',
       escrowType: toEscrowType(escrowType),
       itemName,
@@ -181,9 +229,7 @@ router.post('/create', async (req, res) => {
       deadlineAt: new Date(Date.now() + Number(deadlineHours || 72) * 60 * 60 * 1000),
       requirements: safeRequirements,
       requirementsHash,
-      txIds: {
-        create: createTxId,
-      },
+      txIds: { create: createTxId },
       activityLogs: [
         {
           action: 'CREATE',
@@ -197,6 +243,21 @@ router.post('/create', async (req, res) => {
     });
 
     await escrow.save();
+
+    if (webhookUrl && typeof webhookUrl === 'string') {
+      await registerWebhook(escrow.escrowId, webhookUrl);
+    }
+
+    if (isSpecResponse(req)) {
+      return res.status(201).json({
+        appId: escrow.appId ?? null,
+        escrowAddress: escrow.appAddress || '',
+        txId: createTxId,
+        loraUrl: toLoraAppUrl(escrow.appId),
+        escrowId: escrow.escrowId,
+      });
+    }
+
     return res.status(201).json(escrow);
   } catch (err: any) {
     return res.status(500).json({ message: 'Failed to create escrow', error: err.message });
@@ -225,13 +286,9 @@ router.post('/:id/fund', async (req, res) => {
       return res.status(403).json({ message: 'buyerAddress does not match escrow buyer' });
     }
 
-    const receiverAddress = escrow.appAddress || process.env.ESCROW_RECEIVER_ADDRESS || '';
+    const receiverAddress = resolveReceiverAddress(escrow);
     if (!receiverAddress) {
-      return res.status(500).json({ message: 'Escrow receiver address is not configured' });
-    }
-
-    if (!isValidAlgorandAddress(receiverAddress)) {
-      return res.status(500).json({ message: 'Configured escrow receiver address is invalid' });
+      return res.status(500).json({ message: 'Escrow receiver address is missing/invalid. Set a valid testnet ESCROW_RECEIVER_ADDRESS in server/.env' });
     }
 
     if (!Number.isInteger(escrow.amount) || escrow.amount <= 0) {
@@ -242,20 +299,33 @@ router.post('/:id/fund', async (req, res) => {
       return res.status(400).json({ message: 'Escrow buyer must be set at creation time' });
     }
 
-    const unsigned = await buildUnsignedFundingTransaction({
+    const unsigned = await prepareFundingTransaction({
       sender: buyerAddress,
       receiver: receiverAddress,
       amount: escrow.amount,
-      note: `escrow:${escrow.escrowId}:fund`,
+      escrowId: escrow.escrowId,
     });
 
-    return res.json({
+    const payload = {
       escrowId: escrow.escrowId,
       receiver: receiverAddress,
       amount: escrow.amount,
+      amountMicroAlgo: escrow.amount,
       network: 'testnet',
       unsignedTransaction: unsigned.unsignedTransaction,
-    });
+      unsignedTxns: [unsigned.unsignedTransaction],
+    };
+
+    if (isSpecResponse(req)) {
+      return res.json({
+        unsignedTxns: payload.unsignedTxns,
+        escrowId: payload.escrowId,
+        amountMicroAlgo: payload.amountMicroAlgo,
+        receiver: payload.receiver,
+      });
+    }
+
+    return res.json(payload);
   } catch (err: any) {
     return res.status(500).json({ message: 'Failed to prepare funding transaction', error: err.message });
   }
@@ -274,7 +344,7 @@ router.post('/:id/confirm-fund', async (req, res) => {
     const normalizedTxId = txId.trim();
 
     if (escrow.state === 'FUNDED' && ensureTxIds(escrow).fund === normalizedTxId) {
-      return res.json(escrow);
+      return res.json(isSpecResponse(req) ? toSpecEscrow(escrow.toObject()) : escrow);
     }
 
     if (escrow.state !== 'CREATED') {
@@ -290,12 +360,12 @@ router.post('/:id/confirm-fund', async (req, res) => {
       return res.status(409).json({ message: 'txId already permanently used by another escrow' });
     }
 
-    const expectedReceiver = escrow.appAddress || process.env.ESCROW_RECEIVER_ADDRESS || '';
+    const expectedReceiver = resolveReceiverAddress(escrow);
     if (!expectedReceiver) {
-      return res.status(500).json({ message: 'Escrow receiver address is not configured' });
+      return res.status(500).json({ message: 'Escrow receiver address is missing/invalid. Set a valid testnet ESCROW_RECEIVER_ADDRESS in server/.env' });
     }
 
-    const onChain = await verifyAlgorandTransactionWithRetry(normalizedTxId, 5, 1400);
+    const onChain = await verifyFundingTransaction(normalizedTxId);
 
     if (normalizeAddress(onChain.sender) !== normalizeAddress(escrow.buyerAddress)) {
       return res.status(400).json({ message: 'Funding tx sender does not match escrow buyer address' });
@@ -325,7 +395,9 @@ router.post('/:id/confirm-fund', async (req, res) => {
     }
 
     await escrow.save();
-    return res.json(escrow);
+    await dispatchStateWebhook(escrow, normalizedTxId);
+
+    return res.json(isSpecResponse(req) ? toSpecEscrow(escrow.toObject()) : escrow);
   } catch (err: any) {
     const message = err?.message || 'Failed to verify funding transaction';
     if (/not found/i.test(message)) {
@@ -339,12 +411,12 @@ router.get('/:id/reconcile', async (req, res) => {
   try {
     const escrow = await resolveEscrow(req.params.id);
     if (!escrow) return res.status(404).json({ message: 'Escrow not found' });
+
     const reconciliation = await tryReconcileFunding(escrow);
 
     if (!reconciliation.reconciled) {
       let status = 404;
       if (/different escrow/i.test(reconciliation.reason)) status = 409;
-      else if (/missing/i.test(reconciliation.reason)) status = 400;
       else if (/invalid/i.test(reconciliation.reason)) status = 400;
       else if (/no reconciliation needed/i.test(reconciliation.reason)) status = 200;
       return res.status(status).json({ message: reconciliation.reason, reconciled: false, escrow });
@@ -356,7 +428,7 @@ router.get('/:id/reconcile', async (req, res) => {
   }
 });
 
-router.post('/:id/submit', async (req, res) => {
+const submitWorkHandler = async (req: any, res: any) => {
   try {
     const escrow = await resolveEscrow(req.params.id);
     if (!escrow) return res.status(404).json({ message: 'Escrow not found' });
@@ -365,7 +437,7 @@ router.post('/:id/submit', async (req, res) => {
       return res.status(400).json({ message: `Cannot submit deliverables in ${escrow.state} state` });
     }
 
-    const { sellerAddress, githubUrl = '', description = '', liveUrl = '', notes = '' } = req.body;
+    const { sellerAddress, githubUrl = '', description = '', liveUrl = '', notes = '', screenshotsUrls = [] } = req.body;
     if (!sellerAddress) {
       return res.status(400).json({ message: 'sellerAddress is required' });
     }
@@ -374,7 +446,7 @@ router.post('/:id/submit', async (req, res) => {
       return res.status(403).json({ message: 'Only the escrow seller can submit deliverables' });
     }
 
-    const payload = `${githubUrl}|${description}|${liveUrl}|${notes}`;
+    const payload = `${githubUrl}|${description}|${liveUrl}|${notes}|${JSON.stringify(screenshotsUrls)}`;
     const deliverablesHash = crypto.createHash('sha256').update(payload).digest('hex');
     const txId = makeMockTxId('submit');
 
@@ -392,13 +464,19 @@ router.post('/:id/submit', async (req, res) => {
     );
 
     await escrow.save();
-    return res.json(escrow);
+
+    return res.json({
+      ...(isSpecResponse(req) ? { deliverablesHash, txId, message: 'AI verification triggered' } : escrow),
+    });
   } catch (err: any) {
     return res.status(500).json({ message: 'Failed to submit deliverables', error: err.message });
   }
-});
+};
 
-router.post('/:id/verify', async (req, res) => {
+router.post('/:id/submit', submitWorkHandler);
+router.post('/:id/submit-work', submitWorkHandler);
+
+const aiVerifyHandler = async (req: any, res: any) => {
   try {
     const escrow = await resolveEscrow(req.params.id);
     if (!escrow) return res.status(404).json({ message: 'Escrow not found' });
@@ -411,23 +489,25 @@ router.post('/:id/verify', async (req, res) => {
       return res.status(400).json({ message: 'Deliverables must be submitted before verification' });
     }
 
-    const { score: requestedScore } = req.body;
-    const score = Number.isFinite(Number(requestedScore)) ? Number(requestedScore) : 80;
-    const verifyTxId = makeMockTxId('verify');
+    const aiResult = await evaluateDeliverables({
+      requirements: escrow.requirements || [],
+      githubUrl: req.body.githubUrl,
+      description: req.body.description,
+      screenshotsUrls: req.body.screenshotsUrls,
+    });
 
+    const verifyTxId = makeMockTxId('verify');
     escrow.isAiRunning = false;
-    escrow.aiScore = score;
+    escrow.aiScore = aiResult.score;
     ensureTxIds(escrow).verify = verifyTxId;
 
-    const approved = score >= 75;
+    const approved = aiResult.recommendation === 'RELEASE';
     escrow.aiVerdict = {
-      score,
-      matched: approved
-        ? ['Core requirements covered', 'Submission structure valid', 'Escrow conditions met']
-        : ['Partial implementation found'],
-      gaps: approved ? [] : ['Acceptance threshold not met'],
-      verdict: approved ? 'AI mock approved submission' : 'AI mock rejected submission',
-      recommendation: approved ? 'RELEASE' : 'DISPUTE',
+      score: aiResult.score,
+      matched: aiResult.matched_criteria,
+      gaps: aiResult.missing_criteria,
+      verdict: aiResult.verdict,
+      recommendation: aiResult.recommendation,
     };
 
     if (approved) {
@@ -440,8 +520,9 @@ router.post('/:id/verify', async (req, res) => {
         'AI_VERIFY_APPROVED',
         'ai-oracle',
         releaseTxId,
-        `AI score ${score} approved; funds released`,
+        `AI score ${aiResult.score} approved; funds released`,
       );
+      await dispatchStateWebhook(escrow, releaseTxId);
     } else {
       const disputeTxId = makeMockTxId('dispute');
       ensureTxIds(escrow).dispute = disputeTxId;
@@ -452,23 +533,39 @@ router.post('/:id/verify', async (req, res) => {
         'AI_VERIFY_REJECTED',
         'ai-oracle',
         disputeTxId,
-        `AI score ${score} below threshold; moved to dispute`,
+        `AI score ${aiResult.score} below threshold; moved to dispute`,
       );
+      await dispatchStateWebhook(escrow, disputeTxId);
     }
 
     await escrow.save();
+
+    if (isSpecResponse(req)) {
+      return res.json({
+        score: aiResult.score,
+        matched_criteria: aiResult.matched_criteria,
+        missing_criteria: aiResult.missing_criteria,
+        verdict: aiResult.verdict,
+        recommendation: aiResult.recommendation,
+        escrow: toSpecEscrow(escrow.toObject()),
+      });
+    }
+
     return res.json(escrow);
   } catch (err: any) {
     return res.status(500).json({ message: 'Failed to verify escrow', error: err.message });
   }
-});
+};
+
+router.post('/:id/verify', aiVerifyHandler);
+router.post('/:id/ai-verify', aiVerifyHandler);
 
 router.post('/:id/deliver', async (req, res) => {
   try {
     const escrow = await resolveEscrow(req.params.id);
     if (!escrow) return res.status(404).json({ message: 'Escrow not found' });
 
-    const { actor = '' } = req.body;
+    const { actor = 'oracle' } = req.body;
     const txId = makeMockTxId('release');
 
     applyTransition(
@@ -483,6 +580,12 @@ router.post('/:id/deliver', async (req, res) => {
     ensureTxIds(escrow).release = txId;
 
     await escrow.save();
+    await dispatchStateWebhook(escrow, txId);
+
+    if (isSpecResponse(req)) {
+      return res.json({ txId, loraUrl: toLoraAppUrl(escrow.appId), explorerUrl: toTransactionExplorerUrl(txId) });
+    }
+
     return res.json(escrow);
   } catch (err: any) {
     return res.status(500).json({ message: 'Failed to confirm delivery', error: err.message });
@@ -500,6 +603,7 @@ router.post('/:id/dispute', async (req, res) => {
     ensureTxIds(escrow).dispute = txId;
 
     await escrow.save();
+    await dispatchStateWebhook(escrow, txId);
     return res.json(escrow);
   } catch (err: any) {
     return res.status(500).json({ message: 'Failed to raise dispute', error: err.message });
@@ -525,13 +629,14 @@ router.post('/:id/refund', async (req, res) => {
     ensureTxIds(escrow).refund = txId;
 
     await escrow.save();
+    await dispatchStateWebhook(escrow, txId);
     return res.json(escrow);
   } catch (err: any) {
     return res.status(500).json({ message: 'Failed to refund escrow', error: err.message });
   }
 });
 
-router.post('/:id/resolve', async (req, res) => {
+const arbitrateHandler = async (req: any, res: any) => {
   try {
     const escrow = await resolveEscrow(req.params.id);
     if (!escrow) return res.status(404).json({ message: 'Escrow not found' });
@@ -545,16 +650,40 @@ router.post('/:id/resolve', async (req, res) => {
       const txId = makeMockTxId('release');
       ensureTxIds(escrow).release = txId;
       applyTransition(escrow, ['DISPUTED'], 'COMPLETED', 'ARBITRATE_RELEASE', actor, txId, 'Arbiter released funds to seller');
+      await dispatchStateWebhook(escrow, txId);
     } else {
       const txId = makeMockTxId('refund');
       ensureTxIds(escrow).refund = txId;
       applyTransition(escrow, ['DISPUTED'], 'REFUNDED', 'ARBITRATE_REFUND', actor, txId, 'Arbiter refunded funds to buyer');
+      await dispatchStateWebhook(escrow, txId);
     }
 
     await escrow.save();
     return res.json(escrow);
   } catch (err: any) {
     return res.status(500).json({ message: 'Failed to resolve escrow', error: err.message });
+  }
+};
+
+router.post('/:id/resolve', arbitrateHandler);
+router.post('/:id/arbitrate', arbitrateHandler);
+
+router.get('/list/:address', async (req, res) => {
+  try {
+    const address = String(req.params.address || '').trim();
+    if (!address) return res.status(400).json({ message: 'address is required' });
+
+    const escrows = await Escrow.find({
+      $or: [{ buyerAddress: address }, { sellerAddress: address }],
+    }).sort({ createdAt: -1 });
+
+    if (isSpecResponse(req)) {
+      return res.json(escrows.map((escrow) => toSpecEscrow(escrow.toObject())));
+    }
+
+    return res.json(escrows);
+  } catch (err: any) {
+    return res.status(500).json({ message: 'Failed to list escrows', error: err.message });
   }
 });
 
@@ -563,11 +692,14 @@ router.get('/:id', async (req, res) => {
     const escrow = await resolveEscrow(req.params.id);
     if (!escrow) return res.status(404).json({ message: 'Escrow not found' });
 
-    // Opportunistic reconciliation to recover when confirm-fund was never called.
     try {
       await tryReconcileFunding(escrow);
     } catch {
-      // Fetch endpoint should remain resilient even if reconciliation has issues.
+      // Keep read endpoint resilient.
+    }
+
+    if (isSpecResponse(req)) {
+      return res.json(toSpecEscrow(escrow.toObject()));
     }
 
     return res.json(escrow);
