@@ -109,11 +109,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# ── Algorand / AlgoKit ────────────────────────────────────────────────────────
-# Auto-generated TypedAppClients (copied from smart-contract/artifacts after build)
-src/contracts/*.ts
-!src/contracts/.gitkeep
-
-# ── Deployment ────────────────────────────────────────────────────────────────
-.vercel/
