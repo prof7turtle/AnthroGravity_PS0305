@@ -1,12 +1,10 @@
+import 'dotenv/config';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import escrowRoutes from './routes/escrow.routes';
 import { algorandService } from './services/algorand.service';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
