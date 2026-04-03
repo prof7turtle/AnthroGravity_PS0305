@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useWallet } from '@txnlab/use-wallet-react';
+import axios from 'axios';
+
+const DEMO_SELLER_ADDRESS = 'O46OHE3KQGD6YVJUGXI7MRI33ZSOT3ODXGKKPOQWM5RVZCEKVJFHVGWDL4';
 
 const DUMMY_PRODUCTS = [
   {
@@ -34,6 +38,7 @@ const DUMMY_PRODUCTS = [
 
 const Marketplace = () => {
   const { isAuthenticated } = useAuth();
+  const { activeAddress } = useWallet();
   const navigate = useNavigate();
 
   const [tradeType, setTradeType] = useState('buying');
@@ -41,12 +46,32 @@ const Marketplace = () => {
   const [price, setPrice] = useState('10000');
   const [currency, setCurrency] = useState('ALGO');
 
-  const handleBuy = (itemDetails?: string) => {
+  const handleBuy = async (item?: { name: string }) => {
     if (!isAuthenticated) {
       navigate('/login');
-    } else {
-      // In a real app, this would route to a /checkout or /escrow/create page
-      alert(`Proceeding to Escrow for: ${itemDetails || 'Custom Transaction'}`);
+      return;
+    }
+    if (!activeAddress) {
+      alert('Please connect your wallet first.');
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/escrow/create', {
+        seller: DEMO_SELLER_ADDRESS,
+        itemName: item?.name || `Custom ${assetType} transaction`,
+        escrowType: 0,
+        deadlineRounds: 500,
+      });
+
+      const appId = response?.data?.data?.appId;
+      if (!appId) {
+        throw new Error('Escrow app id not returned from backend');
+      }
+      navigate(`/escrow/${appId}`);
+    } catch (error: any) {
+      const message = error?.response?.data?.error || error?.message || 'Failed to create escrow';
+      alert(message);
     }
   };
 
@@ -106,7 +131,7 @@ const Marketplace = () => {
               </div>
 
               <button
-                onClick={() => handleBuy(`Custom ${assetType} transaction`)}
+                onClick={() => handleBuy({ name: `Custom ${assetType} transaction` })}
                 className="w-full md:w-1/5 bg-[#a855f7] text-white font-bold py-3 px-6 rounded hover:bg-[#7c3aed] transition-colors"
               >
                 Get started now
@@ -142,7 +167,7 @@ const Marketplace = () => {
                     {pkg.price.toLocaleString()} ALGO
                   </div>
                   <button
-                    onClick={() => handleBuy(pkg.name)}
+                    onClick={() => handleBuy({ name: pkg.name })}
                     className="bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold py-2 px-6 rounded transition-colors"
                   >
                     Buy Securely

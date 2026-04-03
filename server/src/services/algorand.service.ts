@@ -101,7 +101,7 @@ class AlgorandService {
    */
   async getCurrentRound(): Promise<number> {
     const status = await this.algodClient.status().do();
-    return Number(status['last-round']);
+    return Number((status as any)['last-round'] ?? (status as any).lastRound ?? 0);
   }
 
   /**
@@ -136,8 +136,9 @@ class AlgorandService {
       const appInfo = await this.getApplicationInfo(appId);
       const globalState: Record<string, any> = {};
 
-      if (appInfo.params['global-state']) {
-        for (const item of appInfo.params['global-state']) {
+      const rawGlobalState = (appInfo.params as any)['global-state'] ?? (appInfo.params as any).globalState;
+      if (rawGlobalState) {
+        for (const item of rawGlobalState) {
           const key = Buffer.from(item.key, 'base64').toString('utf-8');
           const value = item.value;
 
@@ -210,7 +211,7 @@ class AlgorandService {
    * Get application address (contract address)
    */
   getApplicationAddress(appId: number): string {
-    return algosdk.getApplicationAddress(appId);
+    return algosdk.getApplicationAddress(appId).toString();
   }
 
   /**
@@ -218,6 +219,63 @@ class AlgorandService {
    */
   async getSuggestedParams() {
     return await this.algodClient.getTransactionParams().do();
+  }
+
+  /**
+   * Create escrow via factory (backend/oracle signed)
+   */
+  async createEscrowViaFactory(
+    seller: string,
+    itemName: string,
+    escrowType: number,
+    deadlineRounds: number,
+    requirementsHash: Uint8Array
+  ): Promise<{ appId: number; txId: string }> {
+    if (!this.oracleAccount) {
+      throw new Error('Oracle account not initialized');
+    }
+
+    if (!this.factoryAppId || this.factoryAppId <= 0) {
+      throw new Error('Factory App ID is not configured');
+    }
+
+    const params = await this.getSuggestedParams();
+    const selector = algosdk
+      .ABIMethod
+      .fromSignature('createEscrow(address,byte[],uint64,uint64,byte[],uint64)uint64')
+      .getSelector();
+    const encode = (type: string, value: any) => algosdk.ABIType.from(type).encode(value);
+
+    const appCallTxn = algosdk.makeApplicationCallTxnFromObject({
+      from: this.oracleAccount.addr.toString(),
+      appIndex: this.factoryAppId,
+      onComplete: algosdk.OnApplicationComplete.NoOpOC,
+      appArgs: [
+        selector,
+        encode('address', seller),
+        encode('byte[]', new Uint8Array(Buffer.from(itemName, 'utf-8'))),
+        encode('uint64', BigInt(escrowType)),
+        encode('uint64', BigInt(deadlineRounds)),
+        encode('byte[]', requirementsHash),
+        encode('uint64', BigInt(this.templateAppId)),
+      ],
+      suggestedParams: {
+        ...params,
+        fee: 4000,
+        flatFee: true,
+      },
+    });
+
+    const signed = appCallTxn.signTxn(this.oracleAccount.sk);
+    const { txId } = (await this.algodClient.sendRawTransaction(signed).do()) as any;
+    const confirmation: any = await algosdk.waitForConfirmation(this.algodClient, txId, 4);
+
+    const newAppId = Number(confirmation?.['inner-txns']?.[0]?.['application-index'] || 0);
+    if (!newAppId) {
+      throw new Error('Factory call succeeded but no child app id was returned');
+    }
+
+    return { appId: newAppId, txId };
   }
 
   /**
@@ -236,7 +294,7 @@ class AlgorandService {
     });
 
     // Transaction 2: App call to fund() method
-    const fundSelector = new Uint8Array(Buffer.from('fund(pay)void'.slice(0, 4)));
+    const fundSelector = algosdk.ABIMethod.fromSignature('fund(pay)void').getSelector();
     const appCallTxn = algosdk.makeApplicationCallTxnFromObject({
       from: buyerAddress,
       appIndex: appId,
@@ -261,7 +319,7 @@ class AlgorandService {
   async buildConfirmDeliveryTransaction(appId: number, callerAddress: string): Promise<string> {
     const params = await this.getSuggestedParams();
     
-    const confirmSelector = new Uint8Array(Buffer.from('confirmDelivery()void'.slice(0, 4)));
+    const confirmSelector = algosdk.ABIMethod.fromSignature('confirmDelivery()void').getSelector();
     const appCallTxn = algosdk.makeApplicationCallTxnFromObject({
       from: callerAddress,
       appIndex: appId,
@@ -279,7 +337,7 @@ class AlgorandService {
   async buildRaiseDisputeTransaction(appId: number, disputerAddress: string): Promise<string> {
     const params = await this.getSuggestedParams();
     
-    const disputeSelector = new Uint8Array(Buffer.from('raiseDispute()void'.slice(0, 4)));
+    const disputeSelector = algosdk.ABIMethod.fromSignature('raiseDispute()void').getSelector();
     const appCallTxn = algosdk.makeApplicationCallTxnFromObject({
       from: disputerAddress,
       appIndex: appId,
@@ -301,9 +359,9 @@ class AlgorandService {
 
     const params = await this.getSuggestedParams();
     
-    const confirmSelector = new Uint8Array(Buffer.from('confirmDelivery()void'.slice(0, 4)));
+    const confirmSelector = algosdk.ABIMethod.fromSignature('confirmDelivery()void').getSelector();
     const appCallTxn = algosdk.makeApplicationCallTxnFromObject({
-      from: this.oracleAccount.addr,
+      from: this.oracleAccount.addr.toString(),
       appIndex: appId,
       onComplete: algosdk.OnApplicationComplete.NoOpOC,
       appArgs: [confirmSelector],
@@ -311,7 +369,7 @@ class AlgorandService {
     });
 
     const signedTxn = appCallTxn.signTxn(this.oracleAccount.sk);
-    const { txId } = await this.algodClient.sendRawTransaction(signedTxn).do();
+    const { txId } = (await this.algodClient.sendRawTransaction(signedTxn).do()) as any;
     await algosdk.waitForConfirmation(this.algodClient, txId, 4);
     
     return txId;
@@ -326,18 +384,18 @@ class AlgorandService {
     }
 
     const params = await this.getSuggestedParams();
-    
-    const submitSelector = new Uint8Array(Buffer.from('submitDeliverables(byte[32])void'.slice(0, 4)));
+    const encode = (type: string, value: any) => algosdk.ABIType.from(type).encode(value);
+    const submitSelector = algosdk.ABIMethod.fromSignature('submitDeliverables(byte[])void').getSelector();
     const appCallTxn = algosdk.makeApplicationCallTxnFromObject({
-      from: this.oracleAccount.addr,
+      from: this.oracleAccount.addr.toString(),
       appIndex: appId,
       onComplete: algosdk.OnApplicationComplete.NoOpOC,
-      appArgs: [submitSelector, deliverablesHash],
+      appArgs: [submitSelector, encode('byte[]', deliverablesHash)],
       suggestedParams: params,
     });
 
     const signedTxn = appCallTxn.signTxn(this.oracleAccount.sk);
-    const { txId } = await this.algodClient.sendRawTransaction(signedTxn).do();
+    const { txId } = (await this.algodClient.sendRawTransaction(signedTxn).do()) as any;
     await algosdk.waitForConfirmation(this.algodClient, txId, 4);
     
     return txId;
@@ -352,23 +410,23 @@ class AlgorandService {
     }
 
     const params = await this.getSuggestedParams();
-    
-    const verdictSelector = new Uint8Array(Buffer.from('aiVerdict(bool,uint64,string)void'.slice(0, 4)));
+    const encode = (type: string, value: any) => algosdk.ABIType.from(type).encode(value);
+    const verdictSelector = algosdk.ABIMethod.fromSignature('aiVerdict(bool,uint64,byte[])void').getSelector();
     const appCallTxn = algosdk.makeApplicationCallTxnFromObject({
-      from: this.oracleAccount.addr,
+      from: this.oracleAccount.addr.toString(),
       appIndex: appId,
       onComplete: algosdk.OnApplicationComplete.NoOpOC,
       appArgs: [
         verdictSelector,
-        new Uint8Array([approved ? 1 : 0]),
-        algosdk.encodeUint64(score),
-        new Uint8Array(Buffer.from(note)),
+        encode('bool', approved),
+        encode('uint64', BigInt(score)),
+        encode('byte[]', new Uint8Array(Buffer.from(note, 'utf-8'))),
       ],
       suggestedParams: params,
     });
 
     const signedTxn = appCallTxn.signTxn(this.oracleAccount.sk);
-    const { txId } = await this.algodClient.sendRawTransaction(signedTxn).do();
+    const { txId } = (await this.algodClient.sendRawTransaction(signedTxn).do()) as any;
     await algosdk.waitForConfirmation(this.algodClient, txId, 4);
     
     return txId;
@@ -383,21 +441,21 @@ class AlgorandService {
     }
 
     const params = await this.getSuggestedParams();
-    
-    const resolveSelector = new Uint8Array(Buffer.from('resolveDispute(bool)void'.slice(0, 4)));
+    const encode = (type: string, value: any) => algosdk.ABIType.from(type).encode(value);
+    const resolveSelector = algosdk.ABIMethod.fromSignature('arbitrate(bool)void').getSelector();
     const appCallTxn = algosdk.makeApplicationCallTxnFromObject({
-      from: this.oracleAccount.addr,
+      from: this.oracleAccount.addr.toString(),
       appIndex: appId,
       onComplete: algosdk.OnApplicationComplete.NoOpOC,
       appArgs: [
         resolveSelector,
-        new Uint8Array([releaseToSeller ? 1 : 0]),
+        encode('bool', releaseToSeller),
       ],
       suggestedParams: params,
     });
 
     const signedTxn = appCallTxn.signTxn(this.oracleAccount.sk);
-    const { txId } = await this.algodClient.sendRawTransaction(signedTxn).do();
+    const { txId } = (await this.algodClient.sendRawTransaction(signedTxn).do()) as any;
     await algosdk.waitForConfirmation(this.algodClient, txId, 4);
     
     return txId;
@@ -418,14 +476,15 @@ class AlgorandService {
       
       for (const app of result.applications || []) {
         try {
-          const state = await this.getEscrowState(app.id);
+          const appId = Number((app as any).id);
+          const state = await this.getEscrowState(appId);
           // Check if this address is buyer or seller
           if (state.buyer === address || state.seller === address) {
             escrows.push({
-              appId: app.id,
-              appAddress: this.getApplicationAddress(app.id),
+              appId,
+              appAddress: this.getApplicationAddress(appId),
               ...state,
-              loraUrl: `https://lora.algokit.io/${process.env.ALGORAND_NETWORK || 'testnet'}/application/${app.id}`,
+              loraUrl: `https://lora.algokit.io/${process.env.ALGORAND_NETWORK || 'testnet'}/application/${appId}`,
             });
           }
         } catch (e) {
@@ -445,7 +504,7 @@ class AlgorandService {
    */
   async submitTransaction(signedTxn: Uint8Array) {
     try {
-      const { txId } = await this.algodClient.sendRawTransaction(signedTxn).do();
+      const { txId } = (await this.algodClient.sendRawTransaction(signedTxn).do()) as any;
       await algosdk.waitForConfirmation(this.algodClient, txId, 4);
       return txId;
     } catch (error) {
@@ -459,7 +518,7 @@ class AlgorandService {
    */
   async submitTransactionGroup(signedTxns: Uint8Array[]) {
     try {
-      const { txId } = await this.algodClient.sendRawTransaction(signedTxns).do();
+      const { txId } = (await this.algodClient.sendRawTransaction(signedTxns).do()) as any;
       await algosdk.waitForConfirmation(this.algodClient, txId, 4);
       return txId;
     } catch (error) {
@@ -477,7 +536,7 @@ class AlgorandService {
   }
 
   getOracleAddress(): string | null {
-    return this.oracleAccount?.addr || null;
+    return this.oracleAccount?.addr?.toString() || null;
   }
 
   getAlgorandClient(): AlgorandClient {

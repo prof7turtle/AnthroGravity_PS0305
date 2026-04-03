@@ -24,6 +24,7 @@ function AppLayout() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/escrow/:appId" element={<EscrowDetail />} />
 
           {/* Protected Merchant Dashboard */}
           <Route element={<ProtectedRoute allowedRole="merchant" />}>
