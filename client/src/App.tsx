@@ -7,6 +7,7 @@ import Merchant from './pages/Merchant';
 import Workflows from './pages/Freelance';
 import ApiIntegration from './pages/ApiIntegration';
 import Login from './pages/Login';
+import EscrowDetail from './pages/EscrowDetail.tsx';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import './App.css';
@@ -32,6 +33,7 @@ function AppLayout() {
           <Route path="/workflows" element={<Workflows />} />
           <Route path="/freelance" element={<Navigate to="/workflows" replace />} />
           <Route path="/api" element={<ApiIntegration />} />
+          <Route path="/escrow/:appId" element={<EscrowDetail />} />
         </Routes>
       </main>
       <Footer />

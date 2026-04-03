@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   motion,
@@ -18,7 +18,7 @@ export const FloatingNav = ({
   navItems: {
     name: string;
     link: string;
-    icon?: JSX.Element;
+    icon?: ReactNode;
   }[];
   ctaLabel?: string;
   onCtaClick?: () => void;

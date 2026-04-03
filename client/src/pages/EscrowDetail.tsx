@@ -1,0 +1,396 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import {
+  deliverEscrow,
+  disputeEscrow,
+  getEscrow,
+  requestFundEscrowTransaction,
+  type EscrowRecord,
+} from '../lib/escrowApi';
+
+type EscrowView = EscrowRecord & {
+  appId: number | null;
+};
+
+type FundingPreview = {
+  receiver: string;
+  amount: number;
+  unsignedTransaction: string;
+};
+
+const normalizeStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string');
+};
+
+const toEscrowView = (payload: unknown): EscrowView | null => {
+  if (!payload || typeof payload !== 'object') return null;
+
+  const root = payload as Record<string, unknown>;
+  const raw = (root._doc && typeof root._doc === 'object' ? root._doc : root) as Record<string, unknown>;
+
+  const aiVerdictRaw = (raw.aiVerdict && typeof raw.aiVerdict === 'object' ? raw.aiVerdict : {}) as Record<string, unknown>;
+  const txIdsRaw = (raw.txIds && typeof raw.txIds === 'object' ? raw.txIds : {}) as Record<string, unknown>;
+
+  return {
+    _id: String(raw._id || ''),
+    escrowId: String(raw.escrowId || ''),
+    state: String(raw.state || 'CREATED') as EscrowRecord['state'],
+    escrowType: String(raw.escrowType || 'FREELANCE') as EscrowRecord['escrowType'],
+    itemName: String(raw.itemName || 'Untitled Escrow'),
+    amount: Number(raw.amount || 0),
+    currency: String(raw.currency || 'ALGO'),
+    buyerAddress: String(raw.buyerAddress || ''),
+    sellerAddress: String(raw.sellerAddress || ''),
+    deadlineAt: String(raw.deadlineAt || ''),
+    hasSubmission: Boolean(raw.hasSubmission),
+    isAiRunning: Boolean(raw.isAiRunning),
+    aiScore: raw.aiScore === null || raw.aiScore === undefined ? null : Number(raw.aiScore),
+    aiRawOutput: String(raw.aiRawOutput || ''),
+    aiVerdict: {
+      score: aiVerdictRaw.score === null || aiVerdictRaw.score === undefined ? null : Number(aiVerdictRaw.score),
+      matched: normalizeStringArray(aiVerdictRaw.matched),
+      gaps: normalizeStringArray(aiVerdictRaw.gaps),
+      verdict: String(aiVerdictRaw.verdict || ''),
+      recommendation: (String(aiVerdictRaw.recommendation || '') as 'RELEASE' | 'DISPUTE' | ''),
+    },
+    requirements: normalizeStringArray(raw.requirements),
+    deliverablesHash: String(raw.deliverablesHash || ''),
+    txIds: {
+      create: String(txIdsRaw.create || ''),
+      fund: String(txIdsRaw.fund || ''),
+      submit: String(txIdsRaw.submit || ''),
+      verify: String(txIdsRaw.verify || ''),
+      release: String(txIdsRaw.release || ''),
+      dispute: String(txIdsRaw.dispute || ''),
+      refund: String(txIdsRaw.refund || ''),
+    },
+    activityLogs: Array.isArray(raw.activityLogs)
+      ? raw.activityLogs
+          .filter((entry): entry is Record<string, unknown> => typeof entry === 'object' && entry !== null)
+          .map((entry) => ({
+            action: String(entry.action || ''),
+            fromState: String(entry.fromState || ''),
+            toState: String(entry.toState || ''),
+            actor: String(entry.actor || ''),
+            txId: String(entry.txId || ''),
+            note: String(entry.note || ''),
+            createdAt: entry.createdAt ? String(entry.createdAt) : undefined,
+          }))
+      : [],
+    appId: typeof raw.appId === 'number' ? raw.appId : null,
+  };
+};
+
+const badgeClassByState: Record<EscrowRecord['state'], string> = {
+  CREATED: 'bg-amber-500/20 text-amber-200 border-amber-400/40',
+  FUNDED: 'bg-cyan-500/20 text-cyan-200 border-cyan-400/40',
+  COMPLETED: 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40',
+  DISPUTED: 'bg-rose-500/20 text-rose-200 border-rose-400/40',
+  REFUNDED: 'bg-slate-400/20 text-slate-100 border-slate-300/40',
+  EXPIRED: 'bg-zinc-500/20 text-zinc-200 border-zinc-300/40',
+};
+
+const truncateAddress = (value: string) => {
+  if (!value) return '-';
+  if (value.length <= 16) return value;
+  return `${value.slice(0, 8)}...${value.slice(-8)}`;
+};
+
+const EscrowDetail = () => {
+  const { appId } = useParams<{ appId: string }>();
+  const [escrow, setEscrow] = useState<EscrowView | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [actionStatus, setActionStatus] = useState('');
+  const [busyAction, setBusyAction] = useState<'fund' | 'deliver' | 'dispute' | ''>('');
+  const [buyerAddressInput, setBuyerAddressInput] = useState('');
+  const [fundingPreview, setFundingPreview] = useState<FundingPreview | null>(null);
+
+  const routeId = appId ? appId.trim() : '';
+
+  const effectiveEscrowId = useMemo(() => {
+    if (!escrow) return routeId;
+    return escrow.escrowId || routeId;
+  }, [escrow, routeId]);
+
+  const loraUrl = useMemo(() => {
+    if (!escrow?.appId) return '';
+    const network = (import.meta.env.VITE_ALGORAND_NETWORK || 'testnet').toLowerCase();
+    return `https://lora.algokit.io/${network}/application/${escrow.appId}`;
+  }, [escrow?.appId]);
+
+  const loadEscrow = async () => {
+    if (!routeId) {
+      setError('Escrow ID is missing in the URL.');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await getEscrow(routeId);
+      const normalized = toEscrowView(response);
+      if (!normalized) {
+        throw new Error('Invalid escrow response from server');
+      }
+      setEscrow(normalized);
+      setBuyerAddressInput(normalized.buyerAddress || '');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load escrow details');
+      setEscrow(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadEscrow();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeId]);
+
+  const runAction = async (
+    action: 'fund' | 'deliver' | 'dispute',
+    task: () => Promise<void>,
+    successMessage: string,
+  ) => {
+    setActionError('');
+    setActionStatus('');
+    setBusyAction(action);
+    try {
+      await task();
+      setActionStatus(successMessage);
+      await loadEscrow();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Action failed');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const handleFund = async () => {
+    if (!effectiveEscrowId) return;
+    await runAction(
+      'fund',
+      async () => {
+        if (!buyerAddressInput.trim()) {
+          throw new Error('Buyer address is required to prepare funding transaction');
+        }
+        const result = await requestFundEscrowTransaction(effectiveEscrowId, {
+          buyerAddress: buyerAddressInput.trim(),
+        });
+        setFundingPreview({
+          receiver: result.receiver,
+          amount: result.amount,
+          unsignedTransaction: result.unsignedTransaction,
+        });
+      },
+      'Unsigned funding transaction prepared. Sign and submit it with wallet to move on-chain.',
+    );
+  };
+
+  const handleDeliver = async () => {
+    if (!effectiveEscrowId) return;
+    await runAction(
+      'deliver',
+      async () => {
+        await deliverEscrow(effectiveEscrowId, { actor: 'buyer-ui' });
+      },
+      'Delivery confirmation submitted.',
+    );
+  };
+
+  const handleDispute = async () => {
+    if (!effectiveEscrowId) return;
+    await runAction(
+      'dispute',
+      async () => {
+        await disputeEscrow(effectiveEscrowId, { actor: 'buyer-ui' });
+      },
+      'Dispute raised successfully.',
+    );
+  };
+
+  return (
+    <section className="min-h-screen bg-[#0a0a0c] px-6 pb-20 pt-8 text-white">
+      <div className="mx-auto max-w-5xl">
+        <header className="mb-8 rounded-2xl border border-white/10 bg-linear-to-br from-[#171720] via-[#121219] to-[#0d0d12] p-6 shadow-2xl">
+          <p className="text-xs uppercase tracking-[0.22em] text-white/50">Escrow Overview</p>
+          <h1 className="mt-2 font-['Outfit'] text-3xl font-extrabold">Escrow {routeId || '-'}</h1>
+          <p className="mt-2 text-sm text-white/60">Track lifecycle state, run key actions, and jump to LORA explorer.</p>
+        </header>
+
+        {loading && (
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-white/75">Loading escrow details...</div>
+        )}
+
+        {!loading && error && (
+          <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 p-6 text-rose-100">
+            Failed to load escrow: {error}
+          </div>
+        )}
+
+        {!loading && !error && escrow && (
+          <div className="space-y-6">
+            <article className="grid gap-4 rounded-2xl border border-white/10 bg-[#101016] p-6 md:grid-cols-2">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-white/50">State</p>
+                <span
+                  className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-bold tracking-wide ${badgeClassByState[escrow.state]}`}
+                >
+                  {escrow.state}
+                </span>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-widest text-white/50">Escrow Type</p>
+                <p className="mt-2 text-sm font-semibold text-white">{escrow.escrowType}</p>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-widest text-white/50">Buyer</p>
+                <p className="mt-2 text-sm font-medium text-white">{truncateAddress(escrow.buyerAddress)}</p>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-widest text-white/50">Seller</p>
+                <p className="mt-2 text-sm font-medium text-white">{truncateAddress(escrow.sellerAddress)}</p>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-widest text-white/50">Amount</p>
+                <p className="mt-2 text-sm font-semibold text-white">
+                  {escrow.amount.toLocaleString()} {escrow.currency}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-widest text-white/50">Escrow ID</p>
+                <p className="mt-2 text-sm font-mono text-white">{escrow.escrowId || '-'}</p>
+              </div>
+
+              <div className="md:col-span-2">
+                <p className="text-xs uppercase tracking-widest text-white/50">LORA</p>
+                {loraUrl ? (
+                  <a
+                    href={loraUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-block text-sm font-semibold text-cyan-300 underline underline-offset-4"
+                  >
+                    Open in LORA Explorer
+                  </a>
+                ) : (
+                  <p className="mt-2 text-sm text-white/60">LORA link is unavailable until appId is set.</p>
+                )}
+              </div>
+            </article>
+
+            <article className="rounded-2xl border border-white/10 bg-[#11111a] p-6">
+              <h2 className="font-['Outfit'] text-2xl font-bold">Actions</h2>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-white/55">
+                    Buyer Address (for Fund)
+                  </label>
+                  <input
+                    value={buyerAddressInput}
+                    onChange={(event) => setBuyerAddressInput(event.target.value)}
+                    className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/70"
+                    placeholder="Paste buyer Algorand address"
+                  />
+                  <button
+                    onClick={() => void handleFund()}
+                    disabled={busyAction !== '' || escrow.state !== 'CREATED'}
+                    className="mt-3 w-full rounded-lg bg-cyan-500 px-3 py-2 text-sm font-bold text-black transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {busyAction === 'fund' ? 'Preparing...' : 'Fund'}
+                  </button>
+                </div>
+
+                <div className="grid gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                  <button
+                    onClick={() => void handleDeliver()}
+                    disabled={busyAction !== '' || escrow.state !== 'FUNDED'}
+                    className="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-bold text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {busyAction === 'deliver' ? 'Submitting...' : 'Confirm Delivery'}
+                  </button>
+
+                  <button
+                    onClick={() => void handleDispute()}
+                    disabled={busyAction !== '' || escrow.state !== 'FUNDED'}
+                    className="rounded-lg bg-rose-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {busyAction === 'dispute' ? 'Submitting...' : 'Dispute'}
+                  </button>
+                </div>
+              </div>
+
+              {actionStatus && (
+                <p className="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+                  {actionStatus}
+                </p>
+              )}
+
+              {actionError && (
+                <p className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+                  {actionError}
+                </p>
+              )}
+
+              {fundingPreview && (
+                <div className="mt-4 rounded-xl border border-cyan-400/25 bg-cyan-500/10 p-4">
+                  <p className="text-xs uppercase tracking-widest text-cyan-200/80">Funding Transaction Preview</p>
+                  <p className="mt-2 text-sm text-cyan-100">Receiver: {fundingPreview.receiver}</p>
+                  <p className="mt-1 text-sm text-cyan-100">Amount (microALGO): {fundingPreview.amount}</p>
+                  <p className="mt-2 break-all font-mono text-xs text-cyan-100/90">
+                    {fundingPreview.unsignedTransaction}
+                  </p>
+                </div>
+              )}
+            </article>
+
+            <article className="rounded-2xl border border-white/10 bg-[#0f0f15] p-6">
+              <h2 className="font-['Outfit'] text-2xl font-bold">Recent Activity</h2>
+              {escrow.activityLogs.length === 0 ? (
+                <p className="mt-3 text-sm text-white/60">No activity yet.</p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {escrow.activityLogs.slice().reverse().map((entry, index) => (
+                    <div key={`${entry.txId}-${index}`} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <p className="text-sm font-semibold text-white">{entry.action || 'Unknown action'}</p>
+                      <p className="mt-1 text-xs text-white/65">{entry.note || '-'}</p>
+                      <p className="mt-1 text-[11px] text-white/50">Tx: {entry.txId || '-'}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => void loadEscrow()}
+                className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
+              >
+                Refresh
+              </button>
+              <Link
+                to="/marketplace"
+                className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
+              >
+                Back to Marketplace
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
+
+export default EscrowDetail;

@@ -1,5 +1,3 @@
-import React from 'react';
-
 const ApiIntegration = () => {
   return (
     <div className="pt-8 pb-20 px-8 max-w-7xl mx-auto min-h-screen">

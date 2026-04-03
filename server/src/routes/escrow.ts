@@ -75,6 +75,13 @@ const applyTransition = (
 };
 
 const resolveEscrow = async (id: string) => {
+  const trimmedId = String(id || '').trim();
+
+  if (/^\d+$/.test(trimmedId)) {
+    const numericAppId = Number(trimmedId);
+    return Escrow.findOne({ $or: [{ appId: numericAppId }, { escrowId: trimmedId }] });
+  }
+
   if (Types.ObjectId.isValid(id)) {
     return Escrow.findOne({ $or: [{ _id: id }, { escrowId: id }] });
   }
