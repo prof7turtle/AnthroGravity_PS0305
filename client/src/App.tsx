@@ -7,6 +7,7 @@ import Merchant from './pages/Merchant';
 import Workflows from './pages/Freelance';
 import ApiIntegration from './pages/ApiIntegration';
 import Login from './pages/Login';
+import EscrowDetail from './pages/EscrowDetail';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import './App.css';
@@ -23,6 +24,7 @@ function AppLayout() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/escrow/:appId" element={<EscrowDetail />} />
 
           {/* Protected Merchant Dashboard */}
           <Route element={<ProtectedRoute allowedRole="merchant" />}>

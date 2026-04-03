@@ -413,4 +413,26 @@ export const evaluateDeliverables = async (input: {
 export const aiService = {
   isAvailable: () => Boolean(process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim().length > 0),
   evaluateDeliverables,
+  verifyDeliverables: async (
+    appId: number,
+    requirements: string,
+    deliverables: { githubUrl?: string; description: string },
+  ) => {
+    const result = await evaluateDeliverables({
+      requirements: requirements
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean),
+      githubUrl: deliverables.githubUrl,
+      description: deliverables.description,
+    });
+
+    return {
+      appId,
+      score: result.score,
+      verdict: result.verdict,
+      analysis: result.analysis,
+      recommendation: result.recommendation === 'RELEASE' ? 'RELEASE' : 'REFUND',
+    };
+  },
 };
