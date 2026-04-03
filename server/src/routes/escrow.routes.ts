@@ -62,24 +62,21 @@ router.post('/create', async (req: Request, res: Response): Promise<void> => {
       requirementsHash = new Uint8Array(hash);
     }
 
-    // Build the transaction parameters for factory.createEscrow()
-    const factoryAppId = algorandService.getFactoryAppId();
-    const templateAppId = algorandService.getTemplateAppId();
-    const params = await algorandService.getSuggestedParams();
+    const result = await algorandService.createEscrowViaFactory(
+      seller,
+      itemName,
+      escrowType,
+      deadlineRounds,
+      requirementsHash,
+    );
 
-    // Return unsigned transaction for frontend to sign
     res.json({
       success: true,
-      message: 'Transaction prepared. Sign and submit to create escrow.',
       data: {
-        factoryAppId,
-        templateAppId,
-        seller,
-        itemName,
-        escrowType,
-        deadlineRounds,
-        requirementsHash: Buffer.from(requirementsHash).toString('base64'),
-        note: 'You need to call factory.createEscrow() from the frontend with these parameters',
+        appId: result.appId,
+        escrowAddress: algosdk.getApplicationAddress(result.appId),
+        txId: result.txId,
+        loraUrl: `https://lora.algokit.io/${process.env.ALGORAND_NETWORK || 'testnet'}/application/${result.appId}`,
       },
     });
   } catch (error: any) {
