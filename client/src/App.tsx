@@ -1,10 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import LandingPage from './components/LandingPage';
 import Marketplace from './pages/Marketplace';
 import Merchant from './pages/Merchant';
-import Freelance from './pages/Freelance';
+import Workflows from './pages/Freelance';
 import ApiIntegration from './pages/ApiIntegration';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -29,7 +29,8 @@ function AppLayout() {
             <Route path="/merchant" element={<Merchant />} />
           </Route>
 
-          <Route path="/freelance" element={<Freelance />} />
+          <Route path="/workflows" element={<Workflows />} />
+          <Route path="/freelance" element={<Navigate to="/workflows" replace />} />
           <Route path="/api" element={<ApiIntegration />} />
         </Routes>
       </main>

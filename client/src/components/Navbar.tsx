@@ -11,7 +11,7 @@ const Navbar = () => {
   const navLinks = [
     { name: 'Marketplace', path: '/marketplace' },
     { name: 'Merchant Dashboard', path: '/merchant' },
-    { name: 'Freelance', path: '/freelance' },
+    { name: 'Workflows', path: '/workflows' },
     { name: 'API Integration', path: '/api' },
   ];
 
@@ -48,7 +48,7 @@ const Navbar = () => {
               >
                 {link.name}
                 <span
-                  className={`absolute left-0 -bottom-1 h-0.5 bg-linear-to-r from-[#a855f7] to-[#c084fc] rounded transition-all duration-300 ${
+                  className={`absolute left-0 -bottom-1 h-0.5 duration-300 ${
                     location.pathname === link.path ? 'w-full' : 'w-0'
                   }`}
                 ></span>

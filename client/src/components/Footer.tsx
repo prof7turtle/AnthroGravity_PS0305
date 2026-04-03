@@ -11,7 +11,7 @@ const Footer = () => {
               AlgoEscrow
             </Link>
             <p className="max-w-sm text-[0.95rem] leading-relaxed text-[#8a8a98]">
-              Trust-minimized escrow infrastructure for modern commerce, freelance work,
+              Trust-minimized escrow infrastructure for modern commerce, workflow automation,
               and API-based automation on Algorand.
             </p>
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#a855f7]/25 bg-[#a855f7]/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#c084fc]">
@@ -25,7 +25,7 @@ const Footer = () => {
             <ul className="flex flex-col gap-4">
               <li><Link to="/marketplace" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Marketplace</Link></li>
               <li><Link to="/merchant" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Merchant Dashboard</Link></li>
-              <li><Link to="/freelance" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Freelance Workspace</Link></li>
+              <li><Link to="/workflows" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Workflows Workspace</Link></li>
               <li><Link to="/api" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">API Integration</Link></li>
             </ul>
           </div>
