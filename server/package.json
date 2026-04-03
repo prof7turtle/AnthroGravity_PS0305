@@ -13,14 +13,9 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-<<<<<<< HEAD
-    "algosdk": "^3.5.2",
-    "axios": "^1.14.0",
-=======
     "@algorandfoundation/algokit-utils": "^7.0.0",
-    "@anthropic-ai/sdk": "^0.32.1",
     "algosdk": "^2.9.0",
->>>>>>> fc7da4a566086f5e08e9555aaf71702caf433f17
+    "axios": "^1.14.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.0",

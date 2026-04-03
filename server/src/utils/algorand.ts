@@ -76,8 +76,8 @@ export const buildUnsignedFundingTransaction = async (params: {
   const noteBytes = params.note ? new Uint8Array(Buffer.from(params.note, 'utf-8')) : undefined;
 
   const transaction = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-    sender: params.sender,
-    receiver: params.receiver,
+    from: params.sender,
+    to: params.receiver,
     amount: params.amount,
     note: noteBytes,
     suggestedParams,

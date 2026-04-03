@@ -409,3 +409,8 @@ export const evaluateDeliverables = async (input: {
     ),
   };
 };
+
+export const aiService = {
+  isAvailable: () => Boolean(process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim().length > 0),
+  evaluateDeliverables,
+};

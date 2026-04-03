@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
-import escrowRoutes from './routes/escrow.routes';
+import escrowRoutes from './routes/escrow';
 import { algorandService } from './services/algorand.service';
 
 dotenv.config();

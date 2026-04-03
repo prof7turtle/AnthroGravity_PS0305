@@ -322,7 +322,7 @@ For TestNet:
 1. Deploy contracts to TestNet
 2. Update `server/.env` with TestNet App IDs
 3. Set `ALGORAND_NETWORK=testnet`
-4. Add `ORACLE_MNEMONIC` for backend signing
+4. Add `ESCROW_MNEMONIC` for backend signing
 
 ---
 
