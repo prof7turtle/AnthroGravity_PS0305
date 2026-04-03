@@ -7,19 +7,15 @@ const Merchant = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'transactions' | 'disputes' | 'api'>('transactions');
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
 
   return (
     <div className="w-full bg-[#0a0a0c] min-h-screen text-white font-['Inter']">
-      
+
       {/* Merchant Header */}
       <div className="bg-[#141418] border-b border-white/5 pt-8 pb-8 px-6 relative overflow-hidden">
         {/* subtle background glow */}
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#00ff88]/5 rounded-full blur-[120px] pointer-events-none"></div>
-        
+
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
           <div>
             <h1 className="text-3xl font-extrabold font-['Outfit'] mb-2">Merchant Dashboard</h1>
@@ -28,57 +24,52 @@ const Merchant = () => {
               Logged in successfully as <strong className="text-white">{user?.email}</strong>
             </p>
           </div>
-          <button 
-            onClick={handleLogout}
-            className="border border-red-500/30 text-red-400 hover:bg-red-500/10 px-5 py-2.5 rounded-lg text-sm transition-all duration-200 font-semibold"
-          >
-            Log Out
-          </button>
+
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row gap-8">
-        
+
         {/* Sidebar Navigation */}
         <div className="w-full md:w-64 shrink-0 flex flex-col gap-2">
-          <button 
+          <button
             onClick={() => setActiveTab('transactions')}
             className={`text-left px-5 py-3.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-3 ${activeTab === 'transactions' ? 'bg-gradient-to-r from-[#00ff88]/10 to-transparent text-[#00ff88] border border-[#00ff88]/20' : 'text-[#8a8a98] hover:bg-white/5 border border-transparent'}`}
           >
-            
+
             Transaction Track
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('disputes')}
             className={`text-left px-5 py-3.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-between ${activeTab === 'disputes' ? 'bg-gradient-to-r from-[#00d4ff]/10 to-transparent text-[#00d4ff] border border-[#00d4ff]/20' : 'text-[#8a8a98] hover:bg-white/5 border border-transparent'}`}
           >
             <div className="flex items-center gap-3">
-              
+
               Disputes
             </div>
             <span className="bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] text-white text-[0.65rem] px-2 py-0.5 rounded-full font-bold">1</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('api')}
             className={`text-left px-5 py-3.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-3 ${activeTab === 'api' ? 'bg-gradient-to-r from-purple-500/10 to-transparent text-purple-400 border border-purple-500/20' : 'text-[#8a8a98] hover:bg-white/5 border border-transparent'}`}
           >
-            
+
             API Setup
           </button>
         </div>
 
         {/* Content Area */}
         <div className="flex-1 min-h-[600px]">
-          
+
           {/* TAB: TRANSACTIONS */}
           {activeTab === 'transactions' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              
+
               {/* Quick Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 <div className="bg-[#141418] border border-white/5 rounded-xl p-5 flex items-center gap-4 hover:border-white/10 transition-colors">
                   <div className="w-12 h-12 rounded-full bg-[#00ff88]/10 flex items-center justify-center text-[#00ff88]">
-                    
+
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-white font-['Outfit']">24</div>
@@ -87,7 +78,7 @@ const Merchant = () => {
                 </div>
                 <div className="bg-[#141418] border border-white/5 rounded-xl p-5 flex items-center gap-4 hover:border-white/10 transition-colors">
                   <div className="w-12 h-12 rounded-full bg-[#00d4ff]/10 flex items-center justify-center text-[#00d4ff]">
-                    
+
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-white font-['Outfit']">142K</div>
@@ -96,7 +87,7 @@ const Merchant = () => {
                 </div>
                 <div className="bg-[#141418] border border-white/5 rounded-xl p-5 flex items-center gap-4 hover:border-white/10 transition-colors">
                   <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500">
-                    
+
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-white font-['Outfit']">3.2</div>
@@ -159,13 +150,13 @@ const Merchant = () => {
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="bg-[#141418] border border-white/5 p-8 rounded-xl shadow-xl">
                 <h2 className="text-2xl font-bold mb-2 font-['Outfit'] flex items-center gap-2">
-                   Dispute Resolution
+                  Dispute Resolution
                 </h2>
                 <p className="text-[#8a8a98] text-sm mb-8">Manage disputed escrows and submit evidence for arbitration.</p>
-                
+
                 <div className="bg-gradient-to-br from-red-500/10 to-transparent border border-red-500/20 rounded-xl p-6 relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-                  
+
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
                       <div className="flex items-center gap-3 mb-2">
@@ -179,15 +170,15 @@ const Merchant = () => {
                       <div className="text-red-400 text-xs font-semibold mt-1 flex items-center gap-1"> Awaiting Evidence</div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-[#0a0a0c] border border-white/5 p-5 rounded-lg mb-6 shadow-inner">
                     <p className="text-sm text-[#8a8a98] mb-3 leading-relaxed">
-                      <strong className="text-white block mb-1">Buyer Claim Transcript:</strong> 
+                      <strong className="text-white block mb-1">Buyer Claim Transcript:</strong>
                       "The application crashes immediately upon opening on iOS 17 devices. I cannot release funds until this compatibility issue is fundamentally resolved per our agreement."
                     </p>
                     <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
                       <span className="text-xs font-semibold text-red-500 flex items-center gap-1">
-                         Time remaining to respond: 48 hours
+                        Time remaining to respond: 48 hours
                       </span>
                     </div>
                   </div>
@@ -206,12 +197,12 @@ const Merchant = () => {
               <div className="bg-[#141418] border border-white/5 p-8 rounded-xl shadow-xl max-w-3xl">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400">
-                    
+
                   </div>
                   <h2 className="text-2xl font-bold font-['Outfit']">Developer Setup</h2>
                 </div>
                 <p className="text-[#8a8a98] text-sm mb-10 pl-14">Configure your automated marketplace routing via the REST SDK.</p>
-                
+
                 <div className="space-y-8">
                   <div className="bg-[#0a0a0c] border border-transparent hover:border-white/5 p-5 rounded-xl transition-colors">
                     <label className="text-sm font-semibold text-white mb-3 block">Your Merchant API Key</label>

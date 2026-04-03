@@ -52,7 +52,7 @@ const Marketplace = () => {
 
   return (
     <div className="w-full bg-[#0a0a0c] min-h-screen text-white font-['Inter']">
-      
+
       {/* ESCROW.COM STYLE HERO WIDGET */}
       <section className="bg-[#141418] border-b border-white/5 pt-8 pb-16 px-6">
         <div className="max-w-5xl mx-auto">
@@ -63,9 +63,9 @@ const Marketplace = () => {
 
           <div className="bg-[#1c1c22] border border-white/10 rounded-xl p-6 shadow-2xl">
             <div className="flex flex-col md:flex-row gap-4 items-center">
-              
+
               <div className="flex w-full md:w-2/5 rounded bg-black/50 border border-white/10 overflow-hidden">
-                <select 
+                <select
                   className="bg-transparent text-white px-4 py-3 outline-none border-r border-white/10 flex-1 appearance-none cursor-pointer"
                   value={tradeType}
                   onChange={(e) => setTradeType(e.target.value)}
@@ -74,7 +74,7 @@ const Marketplace = () => {
                   <option value="selling">I'm Selling</option>
                   <option value="brokering">I'm Brokering</option>
                 </select>
-                <select 
+                <select
                   className="bg-transparent text-white px-4 py-3 outline-none flex-1 appearance-none cursor-pointer"
                   value={assetType}
                   onChange={(e) => setAssetType(e.target.value)}
@@ -88,13 +88,13 @@ const Marketplace = () => {
 
               <div className="flex w-full md:w-2/5 rounded bg-black/50 border border-white/10 overflow-hidden">
                 <div className="flex items-center px-4 text-[#8a8a98]">for</div>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   className="bg-transparent text-white py-3 outline-none flex-1 font-mono w-24"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                 />
-                <select 
+                <select
                   className="bg-transparent text-white px-4 py-3 outline-none border-l border-white/10 appearance-none cursor-pointer"
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
@@ -105,7 +105,7 @@ const Marketplace = () => {
                 </select>
               </div>
 
-              <button 
+              <button
                 onClick={() => handleBuy(`Custom ${assetType} transaction`)}
                 className="w-full md:w-1/5 bg-[#00ff88] text-black font-bold py-3 px-6 rounded hover:bg-[#00cc6a] transition-colors"
               >
@@ -141,7 +141,7 @@ const Marketplace = () => {
                   <div className="font-mono text-xl font-bold text-white">
                     {pkg.price.toLocaleString()} ALGO
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleBuy(pkg.name)}
                     className="bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold py-2 px-6 rounded transition-colors"
                   >
