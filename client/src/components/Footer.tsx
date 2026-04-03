@@ -2,52 +2,56 @@ import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
-    <footer className="bg-[#050507] border-t border-white/5 pb-8 px-6 font-['Inter']">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8 mb-16">
+    <footer className="border-t border-[#a855f7]/20 bg-[linear-gradient(180deg,rgba(5,5,7,0.96)_0%,rgba(10,10,12,1)_100%)] px-6 pb-8 pt-14 font-['Inter']">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-5 lg:gap-8">
           <div className="lg:col-span-2 flex flex-col gap-6">
-            <div className="flex items-center gap-2 text-3xl font-extrabold text-white tracking-tight cursor-pointer font-['Outfit']">
-              <span className="text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.4)]">▲</span>
+            <Link to="/" className="flex w-fit items-center gap-2 text-3xl font-extrabold tracking-tight text-white font-['Outfit']">
+              <span className="text-[#a855f7] drop-shadow-[0_0_10px_rgba(168,85,247,0.45)]">▲</span>
               AlgoEscrow
-            </div>
-            <p className="text-[#8a8a98] leading-relaxed text-[0.95rem] max-w-sm">
-              The premier Web3 platform for managing freelance contracts, software
-              development milestones, and decentralized payments securely on Algorand.
+            </Link>
+            <p className="max-w-sm text-[0.95rem] leading-relaxed text-[#8a8a98]">
+              Trust-minimized escrow infrastructure for modern commerce, freelance work,
+              and API-based automation on Algorand.
             </p>
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#a855f7]/25 bg-[#a855f7]/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#c084fc]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#a855f7]" />
+              Powered by Algorand
+            </div>
           </div>
 
           <div className="flex flex-col gap-6">
             <h4 className="text-white text-[1.1rem] font-semibold font-['Outfit']">Platform</h4>
             <ul className="flex flex-col gap-4">
-              <li><Link to="/dashboard" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">My Dashboard</Link></li>
-              <li><Link to="/create" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">New Escrow</Link></li>
-              <li><Link to="/marketplace" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Marketplace Demo</Link></li>
-              <li><Link to="/freelance" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Freelance Gigs</Link></li>
+              <li><Link to="/marketplace" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Marketplace</Link></li>
+              <li><Link to="/merchant" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Merchant Dashboard</Link></li>
+              <li><Link to="/freelance" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Freelance Workspace</Link></li>
+              <li><Link to="/api" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">API Integration</Link></li>
             </ul>
           </div>
 
           <div className="flex flex-col gap-6">
             <h4 className="text-white text-[1.1rem] font-semibold font-['Outfit']">Resources</h4>
             <ul className="flex flex-col gap-4">
-              <li><a href="#docs" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Documentation</a></li>
-              <li><a href="#tutorials" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Tutorials</a></li>
-              <li><a href="#blog" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Blog</a></li>
-              <li><a href="#support" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Support Center</a></li>
+              <li><a href="https://developer.algorand.org/" target="_blank" rel="noreferrer" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Algorand Docs</a></li>
+              <li><a href="https://github.com/algorandfoundation" target="_blank" rel="noreferrer" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">GitHub Examples</a></li>
+              <li><a href="https://algorandtechnologies.com/ecosystem/use-cases" target="_blank" rel="noreferrer" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Use Cases</a></li>
+              <li><Link to="/login" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Account Access</Link></li>
             </ul>
           </div>
 
           <div className="flex flex-col gap-6">
-            <h4 className="text-white text-[1.1rem] font-semibold font-['Outfit']">Legal</h4>
+            <h4 className="text-white text-[1.1rem] font-semibold font-['Outfit']">Company</h4>
             <ul className="flex flex-col gap-4">
-              <li><a href="#privacy" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Privacy Policy</a></li>
-              <li><a href="#terms" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Terms of Service</a></li>
-              <li><a href="#security" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Security</a></li>
+              <li><a href="#" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Privacy Policy</a></li>
+              <li><a href="#" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Terms of Service</a></li>
+              <li><a href="#" className="text-[#8a8a98] text-[0.95rem] transition-colors hover:text-[#a855f7]">Contact</a></li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-white/5 text-center text-[#5a5a68] text-sm">
-          <p>&copy; {new Date().getFullYear()} AlgoEscrow. Empowering decentralized work.</p>
+        <div className="border-t border-white/10 pt-7 text-center text-sm text-[#5a5a68]">
+          <p>&copy; {new Date().getFullYear()} AlgoEscrow. Trustless settlements for the programmable economy.</p>
         </div>
       </div>
     </footer>

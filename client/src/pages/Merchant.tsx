@@ -14,13 +14,13 @@ const Merchant = () => {
       {/* Merchant Header */}
       <div className="bg-[#141418] border-b border-white/5 pt-8 pb-8 px-6 relative overflow-hidden">
         {/* subtle background glow */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#00ff88]/5 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#a855f7]/5 rounded-full blur-[120px] pointer-events-none"></div>
 
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
           <div>
             <h1 className="text-3xl font-extrabold font-['Outfit'] mb-2">Merchant Dashboard</h1>
             <p className="text-[#8a8a98] text-sm flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse"></span>
+              <span className="w-2 h-2 rounded-full bg-[#a855f7] animate-pulse"></span>
               Logged in successfully as <strong className="text-white">{user?.email}</strong>
             </p>
           </div>
@@ -34,14 +34,14 @@ const Merchant = () => {
         <div className="w-full md:w-64 shrink-0 flex flex-col gap-2">
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`text-left px-5 py-3.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-3 ${activeTab === 'transactions' ? 'bg-gradient-to-r from-[#00ff88]/10 to-transparent text-[#00ff88] border border-[#00ff88]/20' : 'text-[#8a8a98] hover:bg-white/5 border border-transparent'}`}
+            className={`text-left px-5 py-3.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-3 ${activeTab === 'transactions' ? 'bg-gradient-to-r from-[#a855f7]/10 to-transparent text-[#a855f7] border border-[#a855f7]/20' : 'text-[#8a8a98] hover:bg-white/5 border border-transparent'}`}
           >
 
             Transaction Track
           </button>
           <button
             onClick={() => setActiveTab('disputes')}
-            className={`text-left px-5 py-3.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-between ${activeTab === 'disputes' ? 'bg-gradient-to-r from-[#00d4ff]/10 to-transparent text-[#00d4ff] border border-[#00d4ff]/20' : 'text-[#8a8a98] hover:bg-white/5 border border-transparent'}`}
+            className={`text-left px-5 py-3.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-between ${activeTab === 'disputes' ? 'bg-gradient-to-r from-[#c084fc]/10 to-transparent text-[#c084fc] border border-[#c084fc]/20' : 'text-[#8a8a98] hover:bg-white/5 border border-transparent'}`}
           >
             <div className="flex items-center gap-3">
 
@@ -68,7 +68,7 @@ const Merchant = () => {
               {/* Quick Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 <div className="bg-[#141418] border border-white/5 rounded-xl p-5 flex items-center gap-4 hover:border-white/10 transition-colors">
-                  <div className="w-12 h-12 rounded-full bg-[#00ff88]/10 flex items-center justify-center text-[#00ff88]">
+                  <div className="w-12 h-12 rounded-full bg-[#a855f7]/10 flex items-center justify-center text-[#a855f7]">
 
                   </div>
                   <div>
@@ -77,7 +77,7 @@ const Merchant = () => {
                   </div>
                 </div>
                 <div className="bg-[#141418] border border-white/5 rounded-xl p-5 flex items-center gap-4 hover:border-white/10 transition-colors">
-                  <div className="w-12 h-12 rounded-full bg-[#00d4ff]/10 flex items-center justify-center text-[#00d4ff]">
+                  <div className="w-12 h-12 rounded-full bg-[#c084fc]/10 flex items-center justify-center text-[#c084fc]">
 
                   </div>
                   <div>
@@ -99,7 +99,7 @@ const Merchant = () => {
               <div className="bg-[#141418] border border-white/5 rounded-xl overflow-hidden shadow-xl">
                 <div className="p-6 border-b border-white/5 flex justify-between items-center bg-black/20">
                   <h2 className="text-lg font-bold font-['Outfit'] text-white">Recent Transactions</h2>
-                  <button className="text-xs text-[#00ff88] hover:underline">View All</button>
+                  <button className="text-xs text-[#a855f7] hover:underline">View All</button>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
@@ -123,7 +123,7 @@ const Merchant = () => {
                           <span className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-xs px-2.5 py-1 rounded-full font-semibold tracking-wide">FUNDED</span>
                         </td>
                         <td className="p-4">
-                          <button className="text-[#0a0a0c] bg-[#00ff88] hover:bg-[#00cc6a] px-4 py-1.5 rounded text-xs font-bold transition-colors">Deliver App</button>
+                          <button className="text-[#0a0a0c] bg-[#a855f7] hover:bg-[#7c3aed] px-4 py-1.5 rounded text-xs font-bold transition-colors">Deliver App</button>
                         </td>
                       </tr>
                       <tr className="border-b border-white/5 hover:bg-white/5 transition-colors group">
@@ -132,7 +132,7 @@ const Merchant = () => {
                         <td className="p-4 font-mono text-white">15,000</td>
                         <td className="p-4"><span className="bg-white/5 px-2 py-1 rounded-md text-[#8a8a98] text-xs">buy_z2..4o</span></td>
                         <td className="p-4">
-                          <span className="bg-[#00ff88]/10 border border-[#00ff88]/20 text-[#00ff88] text-xs px-2.5 py-1 rounded-full font-semibold tracking-wide">COMPLETED</span>
+                          <span className="bg-[#a855f7]/10 border border-[#a855f7]/20 text-[#a855f7] text-xs px-2.5 py-1 rounded-full font-semibold tracking-wide">COMPLETED</span>
                         </td>
                         <td className="p-4">
                           <button className="text-[#8a8a98] hover:text-white border border-white/10 hover:bg-white/10 px-4 py-1.5 rounded text-xs font-bold transition-colors">Details</button>
@@ -207,7 +207,7 @@ const Merchant = () => {
                   <div className="bg-[#0a0a0c] border border-transparent hover:border-white/5 p-5 rounded-xl transition-colors">
                     <label className="text-sm font-semibold text-white mb-3 block">Your Merchant API Key</label>
                     <div className="flex bg-[#141418] border border-white/10 rounded-lg p-1.5 focus-within:border-purple-500/50 transition-colors">
-                      <input type="text" readOnly value="sk_test_51Nx...8v3K2" className="bg-transparent text-[#00ff88] font-mono text-sm px-4 py-2 outline-none flex-1" />
+                      <input type="text" readOnly value="sk_test_51Nx...8v3K2" className="bg-transparent text-[#a855f7] font-mono text-sm px-4 py-2 outline-none flex-1" />
                       <button className="bg-white/5 hover:bg-white/10 text-white font-semibold px-5 py-2 rounded-md text-sm transition-colors">
                         Copy
                       </button>
@@ -248,3 +248,4 @@ const Merchant = () => {
 };
 
 export default Merchant;
+

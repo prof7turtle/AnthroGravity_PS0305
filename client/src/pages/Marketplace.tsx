@@ -107,7 +107,7 @@ const Marketplace = () => {
 
               <button
                 onClick={() => handleBuy(`Custom ${assetType} transaction`)}
-                className="w-full md:w-1/5 bg-[#00ff88] text-black font-bold py-3 px-6 rounded hover:bg-[#00cc6a] transition-colors"
+                className="w-full md:w-1/5 bg-[#a855f7] text-white font-bold py-3 px-6 rounded hover:bg-[#7c3aed] transition-colors"
               >
                 Get started now
               </button>
@@ -134,7 +134,7 @@ const Marketplace = () => {
                 </div>
               </div>
               <div className="p-6">
-                <div className="text-xs text-[#00ff88] font-bold mb-2">Seller: {pkg.seller}</div>
+                <div className="text-xs text-[#a855f7] font-bold mb-2">Seller: {pkg.seller}</div>
                 <h3 className="text-xl font-bold mb-3">{pkg.name}</h3>
                 <p className="text-[#8a8a98] text-sm mb-6 line-clamp-2">{pkg.description}</p>
                 <div className="flex justify-between items-center border-t border-white/5 pt-4">
@@ -159,3 +159,4 @@ const Marketplace = () => {
 };
 
 export default Marketplace;
+

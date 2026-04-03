@@ -137,7 +137,7 @@ const Freelance = () => {
   const blockchainBadge = () => {
     const colors: Record<BlockchainState, string> = {
       CREATED: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
-      FUNDED: 'bg-[#00ff88]/15 text-[#00ff88] border-[#00ff88]/30',
+      FUNDED: 'bg-[#a855f7]/15 text-[#a855f7] border-[#a855f7]/30',
       COMPLETED: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
       DISPUTED: 'bg-red-500/15 text-red-400 border-red-500/30',
       REFUNDED: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
@@ -153,8 +153,8 @@ const Freelance = () => {
   const uiStatusBadge = () => {
     const labels: Record<DerivedUIStatus, { text: string; cls: string }> = {
       AWAITING_FUNDING: { text: 'Awaiting Funding', cls: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
-      IN_PROGRESS: { text: 'In Progress', cls: 'bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/20' },
-      SUBMITTED: { text: 'Work Submitted', cls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' },
+      IN_PROGRESS: { text: 'In Progress', cls: 'bg-[#a855f7]/10 text-[#a855f7] border-[#a855f7]/20' },
+      SUBMITTED: { text: 'Work Submitted', cls: 'bg-violet-500/10 text-violet-400 border-violet-500/20' },
       VERIFYING: { text: 'AI Verifying', cls: 'bg-purple-500/10 text-purple-400 border-purple-500/20 animate-pulse' },
       VERIFIED: { text: 'AI Approved', cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
       PAYMENT_RELEASED: { text: 'Payment Released', cls: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
@@ -198,22 +198,22 @@ const Freelance = () => {
     <div className="pt-8 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto min-h-screen text-white font-['Inter']">
 
       {/* ═══ Demo Toolbar ═══ */}
-      <div className="bg-[#141418] border border-[#00ff88]/30 rounded-xl p-4 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-[0_0_15px_rgba(0,255,136,0.1)]">
+      <div className="bg-[#141418] border border-[#a855f7]/30 rounded-xl p-4 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-[0_0_15px_rgba(168,85,247,0.1)]">
         <div>
-          <h3 className="text-[#00ff88] font-bold text-sm tracking-widest uppercase mb-1">Interactive Demo Mode</h3>
+          <h3 className="text-[#a855f7] font-bold text-sm tracking-widest uppercase mb-1">Interactive Demo Mode</h3>
           <p className="text-xs text-[#8a8a98]">Toggle between Client &amp; Freelancer to see role-based permissions and the escrow state machine in action.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex bg-black/50 p-1 rounded-lg border border-white/10">
             <button
               onClick={() => setViewMode('client')}
-              className={`px-5 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'client' ? 'bg-white text-black' : 'text-[#8a8a98] hover:text-white'}`}
+              className={`px-5 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'client' ? 'bg-[#a855f7] text-white shadow-[0_0_14px_rgba(168,85,247,0.3)]' : 'text-[#8a8a98] hover:text-white'}`}
             >
               Client (User)
             </button>
             <button
               onClick={() => setViewMode('freelancer')}
-              className={`px-5 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'freelancer' ? 'bg-white text-black' : 'text-[#8a8a98] hover:text-white'}`}
+              className={`px-5 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'freelancer' ? 'bg-[#a855f7] text-white shadow-[0_0_14px_rgba(168,85,247,0.3)]' : 'text-[#8a8a98] hover:text-white'}`}
             >
               Freelancer (Merchant)
             </button>
@@ -228,7 +228,7 @@ const Freelance = () => {
 
       {/* ═══ Gig Header ═══ */}
       <div className="bg-[#141418] border border-white/5 rounded-2xl p-8 mb-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ff88]/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#a855f7]/5 rounded-full blur-[100px] pointer-events-none"></div>
 
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 relative z-10">
           <div className="flex-1">
@@ -246,12 +246,12 @@ const Freelance = () => {
           </div>
 
           {/* Locked Payment */}
-          <div className="text-left lg:text-right bg-black/40 border border-white/5 p-5 rounded-xl min-w-[200px]">
+          <div className="text-left lg:text-right bg-black/40 border border-white/5 p-5 rounded-xl min-w-50">
             <div className="text-[#8a8a98] text-xs font-semibold mb-1 uppercase tracking-widest">
               {escrow.blockchainState === 'COMPLETED' ? 'Released Amount' : escrow.blockchainState === 'CREATED' ? 'Escrow Amount' : 'Locked Payment'}
             </div>
             <div className="text-3xl font-mono font-bold text-white">
-              <span className="text-[#00d4ff]">{escrow.amount.toLocaleString()}</span> {escrow.currency}
+              <span className="text-[#c084fc]">{escrow.amount.toLocaleString()}</span> {escrow.currency}
             </div>
             <div className="text-xs text-[#5a5a68] mt-1 font-mono">Deadline: {new Date(escrow.deadline).toLocaleDateString()}</div>
           </div>
@@ -288,7 +288,7 @@ const Freelance = () => {
             <ul className="space-y-3">
               {escrow.requirements.map((req, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-[#d4d4d8]">
-                  <span className="text-[#00ff88] mt-0.5 shrink-0">✓</span> {req}
+                  <span className="text-[#a855f7] mt-0.5 shrink-0">✓</span> {req}
                 </li>
               ))}
             </ul>
@@ -309,9 +309,9 @@ const Freelance = () => {
                 const isPast = (['CREATED', 'FUNDED', 'COMPLETED', 'DISPUTED', 'REFUNDED', 'EXPIRED'] as BlockchainState[]).indexOf(escrow.blockchainState) >
                   (['CREATED', 'FUNDED', 'COMPLETED', 'DISPUTED', 'REFUNDED', 'EXPIRED'] as BlockchainState[]).indexOf(state);
                 return (
-                  <div key={state} className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${isActive ? 'bg-[#00ff88]/10 border border-[#00ff88]/20' : 'border border-transparent'}`}>
-                    <div className={`w-3 h-3 rounded-full shrink-0 ${isActive ? 'bg-[#00ff88] shadow-[0_0_8px_rgba(0,255,136,0.6)]' : isPast ? 'bg-[#5a5a68]' : 'bg-[#2a2a30] border border-[#3a3a40]'}`}></div>
-                    <span className={`text-xs font-mono font-bold ${isActive ? 'text-[#00ff88]' : isPast ? 'text-[#5a5a68]' : 'text-[#3a3a40]'}`}>{state}</span>
+                  <div key={state} className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${isActive ? 'bg-[#a855f7]/10 border border-[#a855f7]/20' : 'border border-transparent'}`}>
+                    <div className={`w-3 h-3 rounded-full shrink-0 ${isActive ? 'bg-[#a855f7] shadow-[0_0_8px_rgba(168,85,247,0.6)]' : isPast ? 'bg-[#5a5a68]' : 'bg-[#2a2a30] border border-[#3a3a40]'}`}></div>
+                    <span className={`text-xs font-mono font-bold ${isActive ? 'text-[#a855f7]' : isPast ? 'text-[#5a5a68]' : 'text-[#3a3a40]'}`}>{state}</span>
                   </div>
                 );
               })}
@@ -343,12 +343,12 @@ const Freelance = () => {
                     <div className="border-t border-white/5 my-3"></div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-bold text-white">Total</span>
-                      <span className="text-[#00d4ff] font-mono font-bold text-lg">{(escrow.amount * 1.005).toFixed(2)} {escrow.currency}</span>
+                      <span className="text-[#c084fc] font-mono font-bold text-lg">{(escrow.amount * 1.005).toFixed(2)} {escrow.currency}</span>
                     </div>
                   </div>
                   <button
                     onClick={handleFundEscrow}
-                    className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-bold py-4 rounded-xl hover:shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all duration-300 transform hover:-translate-y-0.5"
+                    className="w-full bg-linear-to-r from-yellow-500 to-yellow-600 text-black font-bold py-4 rounded-xl hover:shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all duration-300 transform hover:-translate-y-0.5"
                   >
                     Fund Escrow — Lock {escrow.amount.toLocaleString()} {escrow.currency}
                   </button>
@@ -375,7 +375,7 @@ const Freelance = () => {
                 <div className="bg-[#141418] border border-white/5 rounded-2xl p-8 shadow-xl">
                   {viewMode === 'client' ? (
                     <div className="text-center py-10">
-                      <div className="w-16 h-16 bg-[#00ff88]/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#00ff88]/20 text-[#00ff88] text-2xl">
+                      <div className="w-16 h-16 bg-[#a855f7]/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#a855f7]/20 text-[#a855f7] text-2xl">
                         ⏱
                       </div>
                       <h3 className="text-xl font-bold mb-2 font-['Outfit']">Awaiting Freelancer Submission</h3>
@@ -399,23 +399,23 @@ const Freelance = () => {
                         <div>
                           <label className="text-sm font-semibold text-white mb-2 block">GitHub Repository URL *</label>
                           <input type="text" placeholder="https://github.com/yourusername/repo"
-                            className="w-full bg-[#0a0a0c] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#00ff88]/50 transition-colors"
+                            className="w-full bg-[#0a0a0c] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#a855f7]/50 transition-colors"
                             value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} />
                         </div>
                         <div>
                           <label className="text-sm font-semibold text-white mb-2 block">Live Preview URL (Optional)</label>
                           <input type="text" placeholder="https://preview-link.vercel.app"
-                            className="w-full bg-[#0a0a0c] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#00ff88]/50 transition-colors"
+                            className="w-full bg-[#0a0a0c] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#a855f7]/50 transition-colors"
                             value={liveUrl} onChange={(e) => setLiveUrl(e.target.value)} />
                         </div>
                         <div>
                           <label className="text-sm font-semibold text-white mb-2 block">Notes for AI Agent</label>
                           <textarea rows={3} placeholder="How to run the project, where the main wallet logic is, etc."
-                            className="w-full bg-[#0a0a0c] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#00ff88]/50 transition-colors resize-none"
+                            className="w-full bg-[#0a0a0c] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#a855f7]/50 transition-colors resize-none"
                             value={notes} onChange={(e) => setNotes(e.target.value)}></textarea>
                         </div>
                         <button onClick={handleSubmitWork}
-                          className="w-full bg-gradient-to-r from-[#00ff88] to-[#00cc6a] text-black font-bold py-4 rounded-xl hover:shadow-[0_0_20px_rgba(0,255,136,0.4)] transition-all duration-300 transform hover:-translate-y-0.5 mt-2">
+                          className="w-full bg-linear-to-r from-[#a855f7] to-[#7c3aed] text-white font-bold py-4 rounded-xl hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all duration-300 transform hover:-translate-y-0.5 mt-2">
                           Submit Work &amp; Trigger AI Evaluation
                         </button>
                       </div>
@@ -427,7 +427,7 @@ const Freelance = () => {
               {/* Sub-state: VERIFYING — AI is running */}
               {uiStatus === 'VERIFYING' && (
                 <div className="bg-[#141418] border border-purple-500/30 rounded-2xl p-12 shadow-xl text-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
+                  <div className="absolute inset-0 bg-linear-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
                   <div className="relative z-10 flex flex-col items-center">
                     <div className="w-20 h-20 rounded-full border-4 border-purple-500/20 border-t-purple-500 animate-spin mb-6 shadow-[0_0_30px_rgba(168,85,247,0.3)]"></div>
                     <h2 className="text-2xl font-bold font-['Outfit'] text-white mb-3">AI Agent is Verifying…</h2>
@@ -450,7 +450,7 @@ const Freelance = () => {
               {/* Sub-state: VERIFIED — AI approved, about to complete */}
               {uiStatus === 'VERIFIED' && (
                 <div className="bg-[#141418] border border-emerald-500/30 rounded-2xl p-8 shadow-xl relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none"></div>
+                  <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 to-transparent pointer-events-none"></div>
                   <div className="relative z-10 text-center py-6">
                     <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20 text-emerald-400 text-3xl">
                       ✓
@@ -466,8 +466,8 @@ const Freelance = () => {
 
               {/* Sub-state: SUBMITTED — waiting for AI to run */}
               {uiStatus === 'SUBMITTED' && (
-                <div className="bg-[#141418] border border-cyan-500/20 rounded-2xl p-8 shadow-xl text-center py-10">
-                  <div className="w-16 h-16 bg-cyan-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-cyan-500/20 text-cyan-400 text-2xl">
+                <div className="bg-[#141418] border border-violet-500/20 rounded-2xl p-8 shadow-xl text-center py-10">
+                  <div className="w-16 h-16 bg-violet-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-violet-500/20 text-violet-400 text-2xl">
                     📦
                   </div>
                   <h3 className="text-xl font-bold mb-2 font-['Outfit']">Work Submitted</h3>
@@ -481,8 +481,8 @@ const Freelance = () => {
 
           {/* ══ COMPLETED: Payment Released ══ */}
           {escrow.blockchainState === 'COMPLETED' && (
-            <div className="bg-[#141418] border border-[#00ff88]/30 rounded-2xl p-8 shadow-[0_0_30px_rgba(0,255,136,0.05)] relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-[#00ff88] text-black font-bold text-xs px-4 py-1 rounded-bl-xl tracking-widest uppercase">
+            <div className="bg-[#141418] border border-[#a855f7]/30 rounded-2xl p-8 shadow-[0_0_30px_rgba(168,85,247,0.05)] relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-[#a855f7] text-white font-bold text-xs px-4 py-1 rounded-bl-xl tracking-widest uppercase">
                 Smart Contract Executed
               </div>
 
@@ -490,8 +490,8 @@ const Freelance = () => {
 
               <div className="flex flex-col md:flex-row gap-8 mb-8">
                 {/* Score Circle */}
-                <div className="w-36 h-36 shrink-0 bg-[#0a0a0c] rounded-full border-8 border-[#00ff88]/20 flex flex-col items-center justify-center shadow-inner mx-auto md:mx-0">
-                  <span className="text-4xl font-black font-['Outfit'] text-[#00ff88]">{escrow.aiScore}</span>
+                <div className="w-36 h-36 shrink-0 bg-[#0a0a0c] rounded-full border-8 border-[#a855f7]/20 flex flex-col items-center justify-center shadow-inner mx-auto md:mx-0">
+                  <span className="text-4xl font-black font-['Outfit'] text-[#a855f7]">{escrow.aiScore}</span>
                   <span className="text-xs text-[#8a8a98] uppercase tracking-wider">out of 100</span>
                 </div>
 
@@ -503,7 +503,7 @@ const Freelance = () => {
                       <ul className="space-y-1">
                         {escrow.aiVerdict.matched.map((m, i) => (
                           <li key={i} className="text-xs text-[#8a8a98] flex items-start gap-2">
-                            <span className="text-[#00ff88]">•</span> {m}
+                            <span className="text-[#a855f7]">•</span> {m}
                           </li>
                         ))}
                       </ul>
@@ -524,9 +524,9 @@ const Freelance = () => {
                 )}
               </div>
 
-              <div className="bg-[#00ff88]/10 border border-[#00ff88]/20 rounded-xl p-5 mb-6 text-center">
-                <h3 className="text-[#00ff88] font-bold mb-1">Threshold Met — Score ≥ 75/100</h3>
-                <p className="text-sm text-[#00ff88]/80">
+              <div className="bg-[#a855f7]/10 border border-[#a855f7]/20 rounded-xl p-5 mb-6 text-center">
+                <h3 className="text-[#a855f7] font-bold mb-1">Threshold Met — Score ≥ 75/100</h3>
+                <p className="text-sm text-[#a855f7]/80">
                   The smart contract has automatically released {escrow.amount.toLocaleString()} {escrow.currency} to the freelancer.
                 </p>
               </div>
@@ -570,7 +570,7 @@ const Freelance = () => {
                     Submit Evidence
                   </button>
                   <button onClick={handleClientConfirm}
-                    className="flex-1 bg-[#00ff88]/10 hover:bg-[#00ff88]/20 text-[#00ff88] font-bold py-3 rounded-lg transition-colors border border-[#00ff88]/20">
+                    className="flex-1 bg-[#a855f7]/10 hover:bg-[#a855f7]/20 text-[#a855f7] font-bold py-3 rounded-lg transition-colors border border-[#a855f7]/20">
                     Withdraw Dispute &amp; Release Funds
                   </button>
                 </div>
@@ -616,3 +616,4 @@ const Freelance = () => {
 };
 
 export default Freelance;
+

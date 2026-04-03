@@ -1,25 +1,10 @@
-import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuth();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const navLinks = [
     { name: 'Marketplace', path: '/marketplace' },
@@ -28,22 +13,21 @@ const Navbar = () => {
     { name: 'API Integration', path: '/api' },
   ];
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleAuthAction = () => {
+    if (isAuthenticated) {
+      logout();
+      navigate('/');
+      return;
+    }
+
+    navigate('/login');
   };
 
   return (
-    <nav 
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-        isScrolled 
-          ? 'py-4 bg-[#0a0a0c]/85 backdrop-blur-md border-b border-white/5 shadow-[0_4px_30px_rgba(0,0,0,0.4)]' 
-          : 'py-6 bg-transparent'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+    <nav className="fixed left-0 top-0 z-50 w-full  py-4 backdrop-blur-sm">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2 text-2xl font-extrabold text-white tracking-tight cursor-pointer font-['Outfit']">
-          <span className="text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.4)]">▲</span>
+          <span className="text-[#a855f7] drop-shadow-[0_0_10px_rgba(168,85,247,0.45)]">▲</span>
           AlgoEscrow
         </Link>
         <ul className="hidden md:flex gap-8 list-none m-0 p-0">
@@ -57,7 +41,7 @@ const Navbar = () => {
               >
                 {link.name}
                 <span 
-                  className={`absolute left-0 -bottom-1 h-0.5 bg-gradient-to-r from-[#00ff88] to-[#00d4ff] rounded transition-all duration-300 ${
+                  className={`absolute left-0 -bottom-1 h-0.5 bg-linear-to-r from-[#a855f7] to-[#c084fc] rounded transition-all duration-300 ${
                     location.pathname === link.path ? 'w-full' : 'w-0 group-hover:w-full'
                   }`}
                 ></span>
@@ -66,18 +50,16 @@ const Navbar = () => {
           ))}
         </ul>
         <div className="flex items-center">
-          {isAuthenticated ? (
-            <button 
-              onClick={handleLogout}
-              className="bg-transparent border border-white/20 text-white py-2.5 px-6 rounded-lg font-semibold text-[0.95rem] cursor-pointer transition-all duration-200 hover:bg-white/10 hover:border-white/30"
-            >
-              Sign Out
-            </button>
-          ) : (
-            <button className="bg-gradient-to-br from-[#00ff88] to-[#00d4ff] text-[#0a0a0c] border-none py-2.5 px-6 rounded-lg font-semibold text-[0.95rem] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(0,255,136,0.4)]">
-              Connect Wallet
-            </button>
-          )}
+          <button
+            onClick={handleAuthAction}
+            className={`rounded-lg py-2.5 px-6 text-[0.95rem] font-semibold transition-all duration-200 ${
+              isAuthenticated
+                ? 'border border-white/20 bg-transparent text-white hover:border-white/35 hover:bg-white/10'
+                : 'border border-[#a855f7]/30 bg-linear-to-br from-[#a855f7] to-[#7c3aed] text-white hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(168,85,247,0.35)]'
+            }`}
+          >
+            {isAuthenticated ? 'Sign Out' : 'Connect Wallet'}
+          </button>
         </div>
       </div>
     </nav>
