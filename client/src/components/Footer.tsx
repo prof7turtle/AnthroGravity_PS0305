@@ -19,10 +19,10 @@ const Footer = () => {
           <div className="flex flex-col gap-6">
             <h4 className="text-white text-[1.1rem] font-semibold font-['Outfit']">Platform</h4>
             <ul className="flex flex-col gap-4">
-              <li><Link to="/marketplace" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Marketplace</Link></li>
-              <li><Link to="/merchant" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Merchant Dashboard</Link></li>
-              <li><Link to="/freelance" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Freelance Tools</Link></li>
-              <li><Link to="/api" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">API Integration</Link></li>
+              <li><Link to="/dashboard" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">My Dashboard</Link></li>
+              <li><Link to="/create" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">New Escrow</Link></li>
+              <li><Link to="/marketplace" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Marketplace Demo</Link></li>
+              <li><Link to="/freelance" className="text-[#8a8a98] text-[0.95rem] hover:text-[#00ff88] transition-colors">Freelance Gigs</Link></li>
             </ul>
           </div>
 
