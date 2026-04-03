@@ -70,19 +70,19 @@ const Marketplace = () => {
                   value={tradeType}
                   onChange={(e) => setTradeType(e.target.value)}
                 >
-                  <option value="buying">I'm Buying</option>
-                  <option value="selling">I'm Selling</option>
-                  <option value="brokering">I'm Brokering</option>
+                  <option className="bg-[#0f0f14] text-white" value="buying">I'm Buying</option>
+                  <option className="bg-[#0f0f14] text-white" value="selling">I'm Selling</option>
+                  <option className="bg-[#0f0f14] text-white" value="brokering">I'm Brokering</option>
                 </select>
                 <select
                   className="bg-transparent text-white px-4 py-3 outline-none flex-1 appearance-none cursor-pointer"
                   value={assetType}
                   onChange={(e) => setAssetType(e.target.value)}
                 >
-                  <option value="software">Software / Code...</option>
-                  <option value="domain">Domain Names...</option>
-                  <option value="services">Services...</option>
-                  <option value="goods">Physical Goods...</option>
+                  <option className="bg-[#0f0f14] text-white" value="software">Software / Code...</option>
+                  <option className="bg-[#0f0f14] text-white" value="domain">Domain Names...</option>
+                  <option className="bg-[#0f0f14] text-white" value="services">Services...</option>
+                  <option className="bg-[#0f0f14] text-white" value="goods">Physical Goods...</option>
                 </select>
               </div>
 
@@ -99,9 +99,9 @@ const Marketplace = () => {
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
                 >
-                  <option value="ALGO">ALGO</option>
-                  <option value="USDC">USDC</option>
-                  <option value="USD">USD</option>
+                  <option className="bg-[#0f0f14] text-white" value="ALGO">ALGO</option>
+                  <option className="bg-[#0f0f14] text-white" value="USDC">USDC</option>
+                  <option className="bg-[#0f0f14] text-white" value="USD">USD</option>
                 </select>
               </div>
 
