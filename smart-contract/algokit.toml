@@ -1,0 +1,28 @@
+[algokit]
+min_version = "2.0.0"
+
+[project]
+type = "contract"
+name = "AlgoEscrow"
+artifacts = "artifacts"
+
+[project.deploy]
+environment_secrets = [
+  "DEPLOYER_MNEMONIC",
+]
+
+[project.deploy.localnet]
+algod_url = "http://localhost:4001"
+algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+indexer_url = "http://localhost:8980"
+kmd_url = "http://localhost:4002"
+
+[project.deploy.testnet]
+algod_url = "https://testnet-api.algonode.cloud"
+indexer_url = "https://testnet-idx.algonode.cloud"
+
+[project.build]
+command = "npm run build"
+
+[project.test]
+command = "npm test"
