@@ -1,0 +1,514 @@
+#pragma version 11
+#pragma typetrack false
+
+// @algorandfoundation/algorand-typescript/arc4/index.d.ts::Contract.approvalProgram() -> uint64:
+main:
+    intcblock 0 8 1 32
+    bytecblock "platform_fee_bps" "total_escrows" "arbiter_address" "platform_treasury" 0x151f7c75
+    txn ApplicationID
+    bnz main_after_if_else@2
+    // src/escrow_factory.algo.ts:33
+    // platform_treasury = GlobalState<Account>({ initialValue: Account() })
+    bytec_3 // "platform_treasury"
+    global ZeroAddress
+    app_global_put
+    // src/escrow_factory.algo.ts:34
+    // platform_fee_bps = GlobalState<uint64>({ initialValue: 50 as uint64 }) // default 0.5%
+    bytec_0 // "platform_fee_bps"
+    pushint 50 // 50
+    app_global_put
+    // src/escrow_factory.algo.ts:35
+    // total_escrows = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_1 // "total_escrows"
+    intc_0 // 0
+    app_global_put
+    // src/escrow_factory.algo.ts:36
+    // arbiter_address = GlobalState<Account>({ initialValue: Account() })
+    bytec_2 // "arbiter_address"
+    global ZeroAddress
+    app_global_put
+    // src/escrow_factory.algo.ts:41
+    // escrow_contract_approval_len = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    pushbytes "escrow_contract_approval_len"
+    intc_0 // 0
+    app_global_put
+    // src/escrow_factory.algo.ts:42
+    // escrow_contract_app_id = GlobalState<Application>({ initialValue: Application() })
+    pushbytes "escrow_contract_app_id"
+    intc_0 // 0
+    app_global_put
+
+main_after_if_else@2:
+    // src/escrow_factory.algo.ts:31
+    // export class EscrowFactory extends Contract {
+    txn OnCompletion
+    !
+    assert // OnCompletion must be NoOp
+    txn ApplicationID
+    bz main_create_NoOp@10
+    pushbytess 0xfcae0314 0x4243fa33 0x67f88d22 0x600b93d0 // method "createEscrow(address,byte[],uint64,uint64,byte[],uint64)uint64", method "getPlatformConfig()(address,uint64,uint64,address)", method "updateFee(uint64)void", method "updateArbiter(address)void"
+    txna ApplicationArgs 0
+    match createEscrow getPlatformConfig updateFee updateArbiter
+    err
+
+main_create_NoOp@10:
+    // src/escrow_factory.algo.ts:31
+    // export class EscrowFactory extends Contract {
+    pushbytes 0xf912ebd1 // method "createApplication(address,uint64,address)void"
+    txna ApplicationArgs 0
+    match createApplication
+    err
+
+
+// src/escrow_factory.algo.ts::EscrowFactory.createApplication[routing]() -> void:
+createApplication:
+    // src/escrow_factory.algo.ts:56
+    // @abimethod({ allowActions: 'NoOp', onCreate: 'require' })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_3 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_1 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    txna ApplicationArgs 3
+    dup
+    len
+    intc_3 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // src/escrow_factory.algo.ts:33
+    // platform_treasury = GlobalState<Account>({ initialValue: Account() })
+    bytec_3 // "platform_treasury"
+    // src/escrow_factory.algo.ts:58
+    // this.platform_treasury.value = treasury
+    uncover 3
+    app_global_put
+    // src/escrow_factory.algo.ts:34
+    // platform_fee_bps = GlobalState<uint64>({ initialValue: 50 as uint64 }) // default 0.5%
+    bytec_0 // "platform_fee_bps"
+    // src/escrow_factory.algo.ts:59
+    // this.platform_fee_bps.value = feeBps
+    uncover 2
+    app_global_put
+    // src/escrow_factory.algo.ts:36
+    // arbiter_address = GlobalState<Account>({ initialValue: Account() })
+    bytec_2 // "arbiter_address"
+    // src/escrow_factory.algo.ts:60
+    // this.arbiter_address.value = arbiter
+    swap
+    app_global_put
+    // src/escrow_factory.algo.ts:35
+    // total_escrows = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_1 // "total_escrows"
+    // src/escrow_factory.algo.ts:61
+    // this.total_escrows.value = 0 as uint64
+    intc_0 // 0
+    app_global_put
+    // src/escrow_factory.algo.ts:56
+    // @abimethod({ allowActions: 'NoOp', onCreate: 'require' })
+    intc_2 // 1
+    return
+
+
+// src/escrow_factory.algo.ts::EscrowFactory.createEscrow[routing]() -> void:
+createEscrow:
+    // src/escrow_factory.algo.ts:78
+    // @abimethod({ allowActions: 'NoOp' })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_3 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    pushint 2 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    txna ApplicationArgs 3
+    dup
+    len
+    intc_1 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    txna ApplicationArgs 4
+    dup
+    len
+    intc_1 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    txna ApplicationArgs 5
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    pushint 2 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    txna ApplicationArgs 6
+    dup
+    len
+    intc_1 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    // src/escrow_factory.algo.ts:88
+    // assert(escrowType <= (2 as uint64), 'Invalid escrow type (must be 0, 1, or 2)')
+    dig 3
+    pushint 2 // 2
+    <=
+    assert // Invalid escrow type (must be 0, 1, or 2)
+    // src/escrow_factory.algo.ts:91
+    // assert(deadlineRounds > (0 as uint64), 'Deadline rounds must be greater than 0')
+    dig 2
+    assert // Deadline rounds must be greater than 0
+    // src/escrow_factory.algo.ts:94
+    // assert(seller !== Account(), 'Seller address must be provided')
+    dig 5
+    global ZeroAddress
+    !=
+    assert // Seller address must be provided
+    // src/escrow_factory.algo.ts:97
+    // const deadlineRound = (Global.round + deadlineRounds) as uint64
+    global Round
+    uncover 3
+    +
+    // src/escrow_factory.algo.ts:101-123
+    // const newEscrow = itxn
+    //   .applicationCall({
+    //     approvalProgram: escrowContractApp.approvalProgram,
+    //     clearStateProgram: escrowContractApp.clearStateProgram,
+    //     globalNumUint: 12 as uint64,   // number of uint64 global state slots
+    //     globalNumBytes: 8 as uint64, // number of bytes global state slots
+    //     localNumUint: 0 as uint64,
+    //     localNumBytes: 0 as uint64,
+    //     fee: 0 as uint64,
+    //     appArgs: [
+    //       // createApplication args packed for the child contract
+    //       seller.bytes,
+    //       itemName,
+    //       op.itob(escrowType),
+    //       op.itob(deadlineRound),
+    //       requirementsHash,
+    //       op.itob(this.platform_fee_bps.value),
+    //       this.platform_treasury.value.bytes,
+    //       this.arbiter_address.value.bytes,
+    //     ],
+    //     accounts: [seller, this.platform_treasury.value, this.arbiter_address.value],
+    //   })
+    //   .submit()
+    itxn_begin
+    // src/escrow_factory.algo.ts:103
+    // approvalProgram: escrowContractApp.approvalProgram,
+    dig 1
+    app_params_get AppApprovalProgram
+    assert // application exists
+    // src/escrow_factory.algo.ts:104
+    // clearStateProgram: escrowContractApp.clearStateProgram,
+    uncover 2
+    app_params_get AppClearStateProgram
+    assert // application exists
+    // src/escrow_factory.algo.ts:114
+    // op.itob(escrowType),
+    uncover 4
+    itob
+    // src/escrow_factory.algo.ts:115
+    // op.itob(deadlineRound),
+    uncover 3
+    itob
+    // src/escrow_factory.algo.ts:117
+    // op.itob(this.platform_fee_bps.value),
+    intc_0 // 0
+    // src/escrow_factory.algo.ts:34
+    // platform_fee_bps = GlobalState<uint64>({ initialValue: 50 as uint64 }) // default 0.5%
+    bytec_0 // "platform_fee_bps"
+    // src/escrow_factory.algo.ts:117
+    // op.itob(this.platform_fee_bps.value),
+    app_global_get_ex
+    assert // check GlobalState exists
+    itob
+    // src/escrow_factory.algo.ts:118
+    // this.platform_treasury.value.bytes,
+    intc_0 // 0
+    // src/escrow_factory.algo.ts:33
+    // platform_treasury = GlobalState<Account>({ initialValue: Account() })
+    bytec_3 // "platform_treasury"
+    // src/escrow_factory.algo.ts:118
+    // this.platform_treasury.value.bytes,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_factory.algo.ts:119
+    // this.arbiter_address.value.bytes,
+    intc_0 // 0
+    // src/escrow_factory.algo.ts:36
+    // arbiter_address = GlobalState<Account>({ initialValue: Account() })
+    bytec_2 // "arbiter_address"
+    // src/escrow_factory.algo.ts:119
+    // this.arbiter_address.value.bytes,
+    app_global_get_ex
+    assert // check GlobalState exists
+    dig 9
+    itxn_field Accounts
+    dig 1
+    itxn_field Accounts
+    dup
+    itxn_field Accounts
+    uncover 9
+    itxn_field ApplicationArgs
+    uncover 8
+    itxn_field ApplicationArgs
+    uncover 4
+    itxn_field ApplicationArgs
+    uncover 3
+    itxn_field ApplicationArgs
+    uncover 5
+    itxn_field ApplicationArgs
+    uncover 2
+    itxn_field ApplicationArgs
+    swap
+    itxn_field ApplicationArgs
+    itxn_field ApplicationArgs
+    // src/escrow_factory.algo.ts:106
+    // globalNumBytes: 8 as uint64, // number of bytes global state slots
+    intc_1 // 8
+    itxn_field GlobalNumByteSlice
+    // src/escrow_factory.algo.ts:105
+    // globalNumUint: 12 as uint64,   // number of uint64 global state slots
+    pushint 12 // 12
+    itxn_field GlobalNumUint
+    itxn_field ClearStateProgramPages
+    itxn_field ApprovalProgramPages
+    // src/escrow_factory.algo.ts:101-122
+    // const newEscrow = itxn
+    //   .applicationCall({
+    //     approvalProgram: escrowContractApp.approvalProgram,
+    //     clearStateProgram: escrowContractApp.clearStateProgram,
+    //     globalNumUint: 12 as uint64,   // number of uint64 global state slots
+    //     globalNumBytes: 8 as uint64, // number of bytes global state slots
+    //     localNumUint: 0 as uint64,
+    //     localNumBytes: 0 as uint64,
+    //     fee: 0 as uint64,
+    //     appArgs: [
+    //       // createApplication args packed for the child contract
+    //       seller.bytes,
+    //       itemName,
+    //       op.itob(escrowType),
+    //       op.itob(deadlineRound),
+    //       requirementsHash,
+    //       op.itob(this.platform_fee_bps.value),
+    //       this.platform_treasury.value.bytes,
+    //       this.arbiter_address.value.bytes,
+    //     ],
+    //     accounts: [seller, this.platform_treasury.value, this.arbiter_address.value],
+    //   })
+    pushint 6 // 6
+    itxn_field TypeEnum
+    // src/escrow_factory.algo.ts:109
+    // fee: 0 as uint64,
+    intc_0 // 0
+    itxn_field Fee
+    // src/escrow_factory.algo.ts:101-123
+    // const newEscrow = itxn
+    //   .applicationCall({
+    //     approvalProgram: escrowContractApp.approvalProgram,
+    //     clearStateProgram: escrowContractApp.clearStateProgram,
+    //     globalNumUint: 12 as uint64,   // number of uint64 global state slots
+    //     globalNumBytes: 8 as uint64, // number of bytes global state slots
+    //     localNumUint: 0 as uint64,
+    //     localNumBytes: 0 as uint64,
+    //     fee: 0 as uint64,
+    //     appArgs: [
+    //       // createApplication args packed for the child contract
+    //       seller.bytes,
+    //       itemName,
+    //       op.itob(escrowType),
+    //       op.itob(deadlineRound),
+    //       requirementsHash,
+    //       op.itob(this.platform_fee_bps.value),
+    //       this.platform_treasury.value.bytes,
+    //       this.arbiter_address.value.bytes,
+    //     ],
+    //     accounts: [seller, this.platform_treasury.value, this.arbiter_address.value],
+    //   })
+    //   .submit()
+    itxn_submit
+    itxn CreatedApplicationID
+    // src/escrow_factory.algo.ts:126
+    // this.total_escrows.value = this.total_escrows.value + (1 as uint64)
+    intc_0 // 0
+    // src/escrow_factory.algo.ts:35
+    // total_escrows = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_1 // "total_escrows"
+    // src/escrow_factory.algo.ts:126
+    // this.total_escrows.value = this.total_escrows.value + (1 as uint64)
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_2 // 1
+    +
+    // src/escrow_factory.algo.ts:35
+    // total_escrows = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_1 // "total_escrows"
+    // src/escrow_factory.algo.ts:126
+    // this.total_escrows.value = this.total_escrows.value + (1 as uint64)
+    swap
+    app_global_put
+    // src/escrow_factory.algo.ts:78
+    // @abimethod({ allowActions: 'NoOp' })
+    itob
+    bytec 4 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_2 // 1
+    return
+
+
+// src/escrow_factory.algo.ts::EscrowFactory.getPlatformConfig[routing]() -> void:
+getPlatformConfig:
+    // src/escrow_factory.algo.ts:140
+    // this.platform_treasury.value,
+    intc_0 // 0
+    // src/escrow_factory.algo.ts:33
+    // platform_treasury = GlobalState<Account>({ initialValue: Account() })
+    bytec_3 // "platform_treasury"
+    // src/escrow_factory.algo.ts:140
+    // this.platform_treasury.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_factory.algo.ts:141
+    // this.platform_fee_bps.value,
+    intc_0 // 0
+    // src/escrow_factory.algo.ts:34
+    // platform_fee_bps = GlobalState<uint64>({ initialValue: 50 as uint64 }) // default 0.5%
+    bytec_0 // "platform_fee_bps"
+    // src/escrow_factory.algo.ts:141
+    // this.platform_fee_bps.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_factory.algo.ts:142
+    // this.total_escrows.value,
+    intc_0 // 0
+    // src/escrow_factory.algo.ts:35
+    // total_escrows = GlobalState<uint64>({ initialValue: 0 as uint64 })
+    bytec_1 // "total_escrows"
+    // src/escrow_factory.algo.ts:142
+    // this.total_escrows.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_factory.algo.ts:143
+    // this.arbiter_address.value,
+    intc_0 // 0
+    // src/escrow_factory.algo.ts:36
+    // arbiter_address = GlobalState<Account>({ initialValue: Account() })
+    bytec_2 // "arbiter_address"
+    // src/escrow_factory.algo.ts:143
+    // this.arbiter_address.value,
+    app_global_get_ex
+    assert // check GlobalState exists
+    // src/escrow_factory.algo.ts:137
+    // @abimethod({ allowActions: 'NoOp', readonly: true })
+    uncover 2
+    itob
+    uncover 3
+    swap
+    concat
+    uncover 2
+    itob
+    concat
+    swap
+    concat
+    bytec 4 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_2 // 1
+    return
+
+
+// src/escrow_factory.algo.ts::EscrowFactory.updateFee[routing]() -> void:
+updateFee:
+    // src/escrow_factory.algo.ts:153
+    // @abimethod({ allowActions: 'NoOp' })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    // src/escrow_factory.algo.ts:156
+    // assert(Txn.sender === Global.creatorAddress, 'Only the creator can update the platform fee')
+    txn Sender
+    global CreatorAddress
+    ==
+    assert // Only the creator can update the platform fee
+    // src/escrow_factory.algo.ts:159
+    // assert(newFeeBps <= (1000 as uint64), 'Fee cannot exceed 1000 basis points (10%)')
+    dup
+    pushint 1000 // 1000
+    <=
+    assert // Fee cannot exceed 1000 basis points (10%)
+    // src/escrow_factory.algo.ts:34
+    // platform_fee_bps = GlobalState<uint64>({ initialValue: 50 as uint64 }) // default 0.5%
+    bytec_0 // "platform_fee_bps"
+    // src/escrow_factory.algo.ts:161
+    // this.platform_fee_bps.value = newFeeBps
+    swap
+    app_global_put
+    // src/escrow_factory.algo.ts:153
+    // @abimethod({ allowActions: 'NoOp' })
+    intc_2 // 1
+    return
+
+
+// src/escrow_factory.algo.ts::EscrowFactory.updateArbiter[routing]() -> void:
+updateArbiter:
+    // src/escrow_factory.algo.ts:169
+    // @abimethod({ allowActions: 'NoOp' })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_3 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // src/escrow_factory.algo.ts:172
+    // assert(Txn.sender === Global.creatorAddress, 'Only the creator can update the arbiter')
+    txn Sender
+    global CreatorAddress
+    ==
+    assert // Only the creator can update the arbiter
+    // src/escrow_factory.algo.ts:174
+    // assert(newArbiter !== Account(), 'Arbiter address must be valid')
+    dup
+    global ZeroAddress
+    !=
+    assert // Arbiter address must be valid
+    // src/escrow_factory.algo.ts:36
+    // arbiter_address = GlobalState<Account>({ initialValue: Account() })
+    bytec_2 // "arbiter_address"
+    // src/escrow_factory.algo.ts:176
+    // this.arbiter_address.value = newArbiter
+    swap
+    app_global_put
+    // src/escrow_factory.algo.ts:169
+    // @abimethod({ allowActions: 'NoOp' })
+    intc_2 // 1
+    return
