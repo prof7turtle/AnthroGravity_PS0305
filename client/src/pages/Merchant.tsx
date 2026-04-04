@@ -1,9 +1,216 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { deliverEscrow, getEscrow, type EscrowRecord } from '../lib/escrowApi';
+
+type MerchantTab = 'transactions' | 'disputes' | 'api';
+
+type ShipmentStage = {
+  key: 'LABEL_CREATED' | 'PICKED_UP' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+  label: string;
+  detail: string;
+};
+
+type TrackedShipment = {
+  escrowId: string;
+  trackingId: string;
+  itemName: string;
+  amount: number;
+  currency: string;
+  escrowState: EscrowRecord['state'];
+  currentStageIndex: number;
+  status: 'TRACKING' | 'DELIVERED' | 'RELEASED' | 'ERROR';
+  releaseTxId: string;
+  error: string;
+  lastUpdate: string;
+};
+
+const SHIPMENT_STAGES: ShipmentStage[] = [
+  { key: 'LABEL_CREATED', label: 'Label Created', detail: 'Carrier generated shipment label' },
+  { key: 'PICKED_UP', label: 'Picked Up', detail: 'Package received by logistics partner' },
+  { key: 'IN_TRANSIT', label: 'In Transit', detail: 'Shipment moving through distribution hubs' },
+  { key: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', detail: 'Assigned to delivery rider' },
+  { key: 'DELIVERED', label: 'Delivered', detail: 'Delivery confirmed at destination' },
+];
+
+const getProgressPercent = (index: number) => {
+  const maxIndex = Math.max(1, SHIPMENT_STAGES.length - 1);
+  return Math.round((index / maxIndex) * 100);
+};
+
+const formatTimestamp = (iso: string) => {
+  if (!iso) return 'N/A';
+  return new Date(iso).toLocaleString();
+};
+
+const normalizeError = (err: unknown) => {
+  if (err instanceof Error) return err.message;
+  return 'Unexpected error occurred';
+};
 
 const Merchant = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'transactions' | 'disputes' | 'api'>('transactions');
+  const [activeTab, setActiveTab] = useState<MerchantTab>('transactions');
+  const [escrowIdInput, setEscrowIdInput] = useState('');
+  const [trackingIdInput, setTrackingIdInput] = useState('');
+  const [trackingError, setTrackingError] = useState('');
+  const [trackingStatus, setTrackingStatus] = useState('');
+  const [isCreatingTracker, setIsCreatingTracker] = useState(false);
+  const [busyTrackingIds, setBusyTrackingIds] = useState<string[]>([]);
+  const [trackedShipments, setTrackedShipments] = useState<TrackedShipment[]>([]);
+
+  const updateShipment = (trackingId: string, updater: (shipment: TrackedShipment) => TrackedShipment) => {
+    setTrackedShipments((prev) => prev.map((shipment) => (shipment.trackingId === trackingId ? updater(shipment) : shipment)));
+  };
+
+  const markShipmentBusy = (trackingId: string, busy: boolean) => {
+    setBusyTrackingIds((prev) => {
+      if (busy && !prev.includes(trackingId)) return [...prev, trackingId];
+      if (!busy) return prev.filter((value) => value !== trackingId);
+      return prev;
+    });
+  };
+
+  const addShipmentTracker = async () => {
+    const escrowId = escrowIdInput.trim();
+    const trackingId = trackingIdInput.trim().toUpperCase();
+
+    setTrackingError('');
+    setTrackingStatus('');
+
+    if (!escrowId) {
+      setTrackingError('Escrow ID is required');
+      return;
+    }
+
+    if (!trackingId) {
+      setTrackingError('Tracking ID from shipment company is required');
+      return;
+    }
+
+    setIsCreatingTracker(true);
+
+    try {
+      const escrow = await getEscrow(escrowId);
+
+      if (escrow.state !== 'FUNDED' && escrow.state !== 'COMPLETED') {
+        throw new Error(`Escrow must be FUNDED/COMPLETED to track shipment. Current state: ${escrow.state}`);
+      }
+
+      const alreadyReleased = escrow.state === 'COMPLETED';
+      const shipment: TrackedShipment = {
+        escrowId,
+        trackingId,
+        itemName: escrow.itemName,
+        amount: escrow.amount,
+        currency: escrow.currency,
+        escrowState: escrow.state,
+        currentStageIndex: alreadyReleased ? SHIPMENT_STAGES.length - 1 : 0,
+        status: alreadyReleased ? 'RELEASED' : 'TRACKING',
+        releaseTxId: alreadyReleased ? escrow.txIds.release || 'ALREADY_RELEASED' : '',
+        error: '',
+        lastUpdate: new Date().toISOString(),
+      };
+
+      setTrackedShipments((prev) => {
+        const withoutExisting = prev.filter((entry) => entry.trackingId !== trackingId);
+        return [shipment, ...withoutExisting];
+      });
+
+      setTrackingStatus(`Tracking started for ${trackingId}. Shipment progress is now visible.`);
+      setEscrowIdInput('');
+      setTrackingIdInput('');
+    } catch (err) {
+      setTrackingError(normalizeError(err));
+    } finally {
+      setIsCreatingTracker(false);
+    }
+  };
+
+  const advanceShipmentStatus = async (trackingId: string) => {
+    const shipment = trackedShipments.find((entry) => entry.trackingId === trackingId);
+    if (!shipment) return;
+
+    if (shipment.status === 'RELEASED') {
+      setTrackingStatus(`Escrow ${shipment.escrowId} already released.`);
+      return;
+    }
+
+    if (shipment.currentStageIndex >= SHIPMENT_STAGES.length - 1 && shipment.status === 'DELIVERED') {
+      setTrackingStatus(`Shipment ${shipment.trackingId} has reached destination. Processing release status...`);
+    }
+
+    markShipmentBusy(trackingId, true);
+    setTrackingError('');
+
+    try {
+      const nextStageIndex = Math.min(shipment.currentStageIndex + 1, SHIPMENT_STAGES.length - 1);
+      const isDelivered = nextStageIndex === SHIPMENT_STAGES.length - 1;
+
+      updateShipment(trackingId, (current) => ({
+        ...current,
+        currentStageIndex: nextStageIndex,
+        status: isDelivered ? 'DELIVERED' : 'TRACKING',
+        error: '',
+        lastUpdate: new Date().toISOString(),
+      }));
+
+      if (!isDelivered) {
+        setTrackingStatus(`Tracking updated: ${trackingId} is now ${SHIPMENT_STAGES[nextStageIndex].label}.`);
+        return;
+      }
+
+      const latestEscrow = await getEscrow(shipment.escrowId);
+      if (latestEscrow.state === 'COMPLETED') {
+        updateShipment(trackingId, (current) => ({
+          ...current,
+          status: 'RELEASED',
+          escrowState: latestEscrow.state,
+          releaseTxId: latestEscrow.txIds.release || 'ALREADY_RELEASED',
+          lastUpdate: new Date().toISOString(),
+        }));
+        setTrackingStatus(`Shipment delivered. Escrow ${shipment.escrowId} was already released.`);
+        return;
+      }
+
+      if (latestEscrow.state !== 'FUNDED') {
+        throw new Error(`Escrow is ${latestEscrow.state}; funds can only release from FUNDED state.`);
+      }
+
+      const releasedEscrow = await deliverEscrow(shipment.escrowId, {
+        actor: `shipment-oracle:${shipment.trackingId}`,
+      });
+
+      updateShipment(trackingId, (current) => ({
+        ...current,
+        status: 'RELEASED',
+        escrowState: releasedEscrow.state,
+        releaseTxId: releasedEscrow.txIds.release || 'RELEASED',
+        lastUpdate: new Date().toISOString(),
+      }));
+
+      setTrackingStatus(`Delivery reached destination. Escrow released for ${shipment.escrowId}.`);
+    } catch (err) {
+      const message = normalizeError(err);
+      updateShipment(trackingId, (current) => ({
+        ...current,
+        status: 'ERROR',
+        error: message,
+        lastUpdate: new Date().toISOString(),
+      }));
+      setTrackingError(message);
+    } finally {
+      markShipmentBusy(trackingId, false);
+    }
+  };
+
+  const activeTrackingCount = trackedShipments.filter((shipment) => shipment.status === 'TRACKING').length;
+  const releasedCount = trackedShipments.filter((shipment) => shipment.status === 'RELEASED').length;
+  const avgProgress = trackedShipments.length
+    ? Math.round(
+        trackedShipments.reduce((sum, shipment) => sum + getProgressPercent(shipment.currentStageIndex), 0) /
+          trackedShipments.length,
+      )
+    : 0;
 
 
   return (
@@ -70,8 +277,8 @@ const Merchant = () => {
 
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-white font-['Outfit']">24</div>
-                    <div className="text-xs text-[#8a8a98] uppercase tracking-wider font-semibold">Active Escrows</div>
+                    <div className="text-2xl font-bold text-white font-['Outfit']">{activeTrackingCount}</div>
+                    <div className="text-xs text-[#8a8a98] uppercase tracking-wider font-semibold">Shipments In Progress</div>
                   </div>
                 </div>
                 <div className="bg-[#141418] border border-white/5 rounded-xl p-5 flex items-center gap-4 hover:border-white/10 transition-colors">
@@ -79,8 +286,8 @@ const Merchant = () => {
 
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-white font-['Outfit']">142K</div>
-                    <div className="text-xs text-[#8a8a98] uppercase tracking-wider font-semibold">Total Volume (ALGO)</div>
+                    <div className="text-2xl font-bold text-white font-['Outfit']">{releasedCount}</div>
+                    <div className="text-xs text-[#8a8a98] uppercase tracking-wider font-semibold">Funds Auto-Released</div>
                   </div>
                 </div>
                 <div className="bg-[#141418] border border-white/5 rounded-xl p-5 flex items-center gap-4 hover:border-white/10 transition-colors">
@@ -88,57 +295,163 @@ const Merchant = () => {
 
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-white font-['Outfit']">3.2</div>
-                    <div className="text-xs text-[#8a8a98] uppercase tracking-wider font-semibold">Avg Days in Escrow</div>
+                    <div className="text-2xl font-bold text-white font-['Outfit']">{avgProgress}%</div>
+                    <div className="text-xs text-[#8a8a98] uppercase tracking-wider font-semibold">Avg Shipment Progress</div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-[#141418] border border-white/5 rounded-xl overflow-hidden shadow-xl">
-                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-black/20">
-                  <h2 className="text-lg font-bold font-['Outfit'] text-white">Recent Transactions</h2>
-                  <button className="text-xs text-[#a855f7] hover:underline">View All</button>
+              <div className="bg-[#141418] border border-white/5 rounded-xl overflow-hidden shadow-xl mb-6">
+                <div className="p-6 border-b border-white/5 bg-black/20">
+                  <h2 className="text-lg font-bold font-['Outfit'] text-white">Track Shipment</h2>
+                  <p className="mt-1 text-xs text-[#8a8a98]">
+                    Enter escrow ID and carrier tracking ID. When shipment reaches Delivered, funds are automatically released.
+                  </p>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-black/40 text-[#8a8a98] text-xs uppercase tracking-wider">
-                        <th className="font-semibold p-4 border-b border-white/5">Escrow ID</th>
-                        <th className="font-semibold p-4 border-b border-white/5">Item</th>
-                        <th className="font-semibold p-4 border-b border-white/5">Amount</th>
-                        <th className="font-semibold p-4 border-b border-white/5">Buyer</th>
-                        <th className="font-semibold p-4 border-b border-white/5">Status</th>
-                        <th className="font-semibold p-4 border-b border-white/5">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-sm">
-                      <tr className="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                        <td className="p-4 font-mono text-xs text-[#a0a0ab]">APP-39210</td>
-                        <td className="p-4 font-medium text-white">SaaS Codebase</td>
-                        <td className="p-4 font-mono text-white">50,000</td>
-                        <td className="p-4"><span className="bg-white/5 px-2 py-1 rounded-md text-[#8a8a98] text-xs">buy_x7..9a</span></td>
-                        <td className="p-4">
-                          <span className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-xs px-2.5 py-1 rounded-full font-semibold tracking-wide">FUNDED</span>
-                        </td>
-                        <td className="p-4">
-                          <button className="text-[#0a0a0c] bg-[#a855f7] hover:bg-[#7c3aed] px-4 py-1.5 rounded text-xs font-bold transition-colors">Deliver App</button>
-                        </td>
-                      </tr>
-                      <tr className="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                        <td className="p-4 font-mono text-xs text-[#a0a0ab]">APP-38411</td>
-                        <td className="p-4 font-medium text-white">Web3Data.com</td>
-                        <td className="p-4 font-mono text-white">15,000</td>
-                        <td className="p-4"><span className="bg-white/5 px-2 py-1 rounded-md text-[#8a8a98] text-xs">buy_z2..4o</span></td>
-                        <td className="p-4">
-                          <span className="bg-[#a855f7]/10 border border-[#a855f7]/20 text-[#a855f7] text-xs px-2.5 py-1 rounded-full font-semibold tracking-wide">COMPLETED</span>
-                        </td>
-                        <td className="p-4">
-                          <button className="text-[#8a8a98] hover:text-white border border-white/10 hover:bg-white/10 px-4 py-1.5 rounded text-xs font-bold transition-colors">Details</button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+
+                <div className="p-6 grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+                  <div>
+                    <label className="mb-2 block text-xs uppercase tracking-widest text-white/60">Escrow ID</label>
+                    <input
+                      value={escrowIdInput}
+                      onChange={(event) => setEscrowIdInput(event.target.value)}
+                      placeholder="AE-XXXX or appId"
+                      className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2.5 text-sm text-white outline-none focus:border-[#a855f7]/70"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs uppercase tracking-widest text-white/60">Tracking ID</label>
+                    <input
+                      value={trackingIdInput}
+                      onChange={(event) => setTrackingIdInput(event.target.value)}
+                      placeholder="e.g. DHL78493210"
+                      className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2.5 text-sm text-white outline-none focus:border-[#a855f7]/70"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      onClick={() => void addShipmentTracker()}
+                      disabled={isCreatingTracker}
+                      className="w-full rounded-lg bg-[#a855f7] px-4 py-2.5 text-sm font-bold text-black transition hover:bg-[#9333ea] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isCreatingTracker ? 'Adding...' : 'Start Tracking'}
+                    </button>
+                  </div>
                 </div>
+
+                {trackingError && (
+                  <p className="px-6 pb-1 text-sm text-rose-300">{trackingError}</p>
+                )}
+                {trackingStatus && (
+                  <p className="px-6 pb-4 text-sm text-emerald-300">{trackingStatus}</p>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                {trackedShipments.length === 0 ? (
+                  <div className="rounded-xl border border-white/10 bg-[#141418] p-6 text-sm text-white/60">
+                    No shipment being tracked yet. Add a tracking ID to visualize shipment progress and auto-release escrow.
+                  </div>
+                ) : (
+                  trackedShipments.map((shipment) => {
+                    const isBusy = busyTrackingIds.includes(shipment.trackingId);
+                    const progress = getProgressPercent(shipment.currentStageIndex);
+
+                    return (
+                      <article key={shipment.trackingId} className="rounded-xl border border-white/10 bg-[#141418] p-5 shadow-lg">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-xs uppercase tracking-widest text-white/50">Tracking ID</p>
+                            <p className="mt-1 font-mono text-sm text-[#c084fc]">{shipment.trackingId}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs uppercase tracking-widest text-white/50">Escrow</p>
+                            <p className="mt-1 font-mono text-xs text-white/80">{shipment.escrowId}</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                          <p className="text-sm text-white">Shipment linked to escrow</p>
+                          <p className="text-sm text-white/80">
+                            {shipment.amount.toLocaleString()} {shipment.currency}
+                          </p>
+                          <p className="text-sm text-white/70">Last update: {formatTimestamp(shipment.lastUpdate)}</p>
+                        </div>
+
+                        <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/10">
+                          <div
+                            className="h-full rounded-full bg-linear-to-r from-[#a855f7] via-[#c084fc] to-[#f0abfc] transition-all duration-500"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+
+                        <div className="mt-5 grid gap-3 sm:grid-cols-5">
+                          {SHIPMENT_STAGES.map((stage, index) => {
+                            const reached = index < shipment.currentStageIndex;
+                            const current = index === shipment.currentStageIndex;
+                            const isFinal = index === SHIPMENT_STAGES.length - 1;
+
+                            return (
+                              <div key={stage.key} className="rounded-lg border border-white/10 bg-black/25 p-3">
+                                <div
+                                  className={`mb-2 h-2.5 w-2.5 rounded-full ${
+                                    reached || (isFinal && shipment.status === 'RELEASED')
+                                      ? 'bg-emerald-400'
+                                      : current
+                                        ? 'bg-[#c084fc]'
+                                        : 'bg-white/25'
+                                  }`}
+                                />
+                                <p className="text-[11px] font-semibold uppercase tracking-wider text-white/85">{stage.label}</p>
+                                <p className="mt-1 text-[11px] text-white/55">{stage.detail}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="mt-5 flex flex-wrap items-center gap-3">
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold tracking-wider ${
+                              shipment.status === 'RELEASED'
+                                ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200'
+                                : shipment.status === 'ERROR'
+                                  ? 'border-rose-400/40 bg-rose-500/15 text-rose-200'
+                                  : shipment.status === 'DELIVERED'
+                                    ? 'border-cyan-400/40 bg-cyan-500/15 text-cyan-200'
+                                    : 'border-amber-400/40 bg-amber-500/15 text-amber-200'
+                            }`}
+                          >
+                            {shipment.status}
+                          </span>
+
+                          {shipment.releaseTxId && (
+                            <span className="text-xs text-white/70">
+                              Release Tx: <span className="font-mono text-white/90">{shipment.releaseTxId}</span>
+                            </span>
+                          )}
+
+                          {shipment.error && (
+                            <span className="text-xs text-rose-300">{shipment.error}</span>
+                          )}
+                        </div>
+
+                        <div className="mt-4">
+                          <button
+                            onClick={() => void advanceShipmentStatus(shipment.trackingId)}
+                            disabled={isBusy || shipment.status === 'RELEASED'}
+                            className="rounded-lg bg-[#a855f7] px-4 py-2 text-xs font-bold text-black transition hover:bg-[#9333ea] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isBusy
+                              ? 'Updating...'
+                              : shipment.status === 'RELEASED'
+                                ? 'Escrow Released'
+                                : 'Simulate Next Shipment Update'}
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })
+                )}
               </div>
             </div>
           )}
