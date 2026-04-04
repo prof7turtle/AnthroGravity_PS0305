@@ -6,7 +6,7 @@ const LandingPage = () => {
     <div className="flex flex-col w-full">
       <main className="flex-1">
         {/* HERO SECTION */}
-        <section className="relative min-h-screen w-full overflow-hidden flex items-center">
+        <section className="relative flex min-h-screen w-full items-start overflow-hidden pt-24 sm:pt-28 lg:items-center lg:pt-0">
 
           {/* ================= BACKGROUND ================= */}
           <div className="absolute inset-0 z-0">
@@ -26,20 +26,20 @@ const LandingPage = () => {
           </div>
 
           {/* ================= CONTENT ================= */}
-          <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-12 lg:py-24">
-            <div className="flex flex-col lg:flex-row items-center gap-16 w-full">
+          <div className="relative z-10 mx-auto w-full max-w-7xl px-5 py-10 sm:px-6 sm:py-12 lg:py-24">
+            <div className="flex w-full flex-col items-center gap-10 md:gap-12 lg:flex-row lg:gap-16">
 
               {/* LEFT */}
               <div className="flex-[1.2] text-center lg:text-left">
 
                 {/* Tag */}
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/[0.03] border border-white/10 rounded-full text-xs font-bold tracking-widest uppercase mb-8 backdrop-blur-md">
+                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] backdrop-blur-md sm:mb-8 sm:px-4">
                   <span className="w-1.5 h-1.5 bg-[#a855f7] rounded-full animate-pulse"></span>
                   Escrow as a Service
                 </div>
 
                 {/* Heading */}
-                <h1 className="text-5xl md:text-6xl lg:text-8xl font-black leading-[0.95] mb-8 text-white tracking-tight drop-shadow-[0_0_40px_rgba(0,0,0,0.8)]">
+                <h1 className="mb-6 text-[3rem] font-black leading-[0.92] tracking-tight text-white drop-shadow-[0_0_40px_rgba(0,0,0,0.8)] sm:text-6xl lg:mb-8 lg:text-8xl">
                   Trustless.
                   <br />
                   <span className="text-white/40 font-light italic">Instant.</span>
@@ -50,23 +50,23 @@ const LandingPage = () => {
                 </h1>
 
                 {/* Description */}
-                <p className="text-lg md:text-xl text-[#8a8a98] leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0">
+                <p className="mx-auto mb-8 max-w-xl text-base leading-relaxed text-[#8a8a98] sm:text-lg md:text-xl lg:mx-0 lg:mb-10">
                   No need to trust the other party, Secure funds, verify work with AI, and release payments instantly.
                 </p>
 
                 {/* CTA */}
-                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                <div className="flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center lg:justify-start lg:gap-4">
 
                   <Link
                     to="/workflows"
-                    className="bg-gradient-to-r from-[#a855f7] to-[#c084fc] text-white px-8 py-4 rounded-xl font-bold text-lg shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:scale-[1.02] transition-all"
+                    className="w-full rounded-xl bg-gradient-to-r from-[#a855f7] to-[#c084fc] px-6 py-3.5 text-center text-base font-bold text-white shadow-[0_0_30px_rgba(168,85,247,0.4)] transition-all hover:scale-[1.02] sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
                   >
                     Start Workflows Escrow
                   </Link>
 
                   <Link
                     to="/marketplace"
-                    className="border border-white/10 px-8 py-4 rounded-xl text-white hover:bg-white/10 transition"
+                    className="w-full rounded-xl border border-white/10 px-6 py-3.5 text-center text-base text-white transition hover:bg-white/10 sm:w-auto sm:px-8 sm:py-4"
                   >
                     View Live Demo →
                   </Link>
@@ -75,13 +75,13 @@ const LandingPage = () => {
               </div>
 
               {/* RIGHT (CLEAN CARD - NO TILT) */}
-              <div className="flex-1 w-full max-w-md">
+              <div className="w-full max-w-md flex-1">
 
-                <div className="bg-[#141418]/80 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+                <div className="rounded-2xl border border-white/10 bg-[#141418]/80 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl sm:p-6">
 
-                  <div className="flex justify-between items-center mb-6">
-                    <span className="text-white font-semibold">App ID: 104592</span>
-                    <span className="bg-[#a855f7]/20 text-[#a855f7] text-xs px-3 py-1 rounded">
+                  <div className="mb-6 flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold text-white sm:text-base">App ID: 104592</span>
+                    <span className="rounded bg-[#a855f7]/20 px-2.5 py-1 text-[11px] text-[#a855f7] sm:px-3 sm:text-xs">
                       FUNDED
                     </span>
                   </div>
