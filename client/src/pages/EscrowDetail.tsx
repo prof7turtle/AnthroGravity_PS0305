@@ -236,13 +236,21 @@ const EscrowDetail = () => {
           : (signedResult as unknown[]);
 
         const signedTxns = candidateBlobs
+          .map((blob): Uint8Array | null => {
+            if (blob instanceof Uint8Array) return blob;
+            if (typeof blob === 'string' && blob.length > 0) {
+              return Uint8Array.from(atob(blob), (char) => char.charCodeAt(0));
+            }
+            return null;
+          })
           .filter((blob): blob is Uint8Array => blob instanceof Uint8Array);
 
         if (!signedTxns.length) {
           throw new Error('Wallet did not return signed transactions');
         }
 
-        const submitPayload = await algodClient.sendRawTransaction(signedTxns.length === 1 ? signedTxns[0] : signedTxns).do();
+        const submitInput: Uint8Array | Uint8Array[] = signedTxns.length === 1 ? signedTxns[0] : signedTxns;
+        const submitPayload = await algodClient.sendRawTransaction(submitInput).do();
         await algosdk.waitForConfirmation(algodClient, submitPayload.txid, 4);
         await confirmEscrowFund(effectiveEscrowId, { txId: submitPayload.txid });
 
