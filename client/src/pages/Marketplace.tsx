@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useWallet } from '@txnlab/use-wallet-react';
 import axios from 'axios';
+import { createEscrow } from '../lib/escrowApi';
 
 
 const DEMO_SELLER_ADDRESS = 'O46OHE3KQGD6YVJUGXI7MRI33ZSOT3ODXGKKPOQWM5RVZCEKVJFHVGWDL4';
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const DUMMY_PRODUCTS = [
   {
@@ -22,7 +22,7 @@ const DUMMY_PRODUCTS = [
     id: 2,
     name: 'Premium Domain: Web3Data.com',
     category: 'Domain',
-    price: 15000,
+    price: 0.005,
     seller: 'DomainVault',
     description: 'High-value premium domain name perfect for a blockchain analytics startup.',
     image: 'https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?auto=format&fit=crop&q=80&w=400'
@@ -48,7 +48,7 @@ const Marketplace = () => {
   const [price, setPrice] = useState('10000');
   const [currency, setCurrency] = useState('ALGO');
 
-  const handleBuy = async (item?: { name: string }) => {
+  const handleBuy = async (item?: { name: string; amount?: number }) => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
@@ -59,21 +59,29 @@ const Marketplace = () => {
     }
 
     try {
-      const response = await axios.post(`${API_BASE}/api/escrow/create`, {
-        seller: DEMO_SELLER_ADDRESS,
+      const amountAlgo = Math.max(0.000001, Number(item?.amount ?? price) || 0.000001);
+      const amount = Math.max(1, Math.round(amountAlgo * 1_000_000));
+      const created = await createEscrow({
+        sellerAddress: DEMO_SELLER_ADDRESS,
+        buyerAddress: activeAddress,
         itemName: item?.name || `Custom ${assetType} transaction`,
-        escrowType: 0,
-        deadlineRounds: 500,
+        escrowType: 'MARKETPLACE',
+        amount,
+        currency,
+        deadlineHours: 72,
+        requirements: [],
       });
 
-      const appId = response?.data?.data?.appId;
-      if (!appId) {
-        throw new Error('Escrow app id not returned from backend');
+      const escrowId = created?.escrowId;
+      if (!escrowId) {
+        throw new Error('Escrow ID not returned from backend');
       }
-      navigate(`/escrow/${appId}`);
+      navigate(`/escrow/${escrowId}`);
     } catch (error: unknown) {
       const message = axios.isAxiosError(error)
-        ? (error.response?.data as { error?: string } | undefined)?.error || error.message
+        ? ((error.response?.data as { error?: string; message?: string } | undefined)?.error
+          || (error.response?.data as { error?: string; message?: string } | undefined)?.message
+          || error.message)
         : error instanceof Error
           ? error.message
           : 'Failed to create escrow';
@@ -137,7 +145,7 @@ const Marketplace = () => {
               </div>
 
               <button
-                onClick={() => handleBuy({ name: `Custom ${assetType} transaction` })}
+                onClick={() => handleBuy({ name: `Custom ${assetType} transaction`, amount: Number(price) || 1 })}
                 className="w-full md:w-1/5 bg-[#a855f7] text-white font-bold py-3 px-6 rounded hover:bg-[#7c3aed] transition-colors"
               >
                 Get started now
@@ -173,7 +181,7 @@ const Marketplace = () => {
                     {pkg.price.toLocaleString()} ALGO
                   </div>
                   <button
-                    onClick={() => handleBuy({ name: pkg.name })}
+                    onClick={() => handleBuy({ name: pkg.name, amount: pkg.price })}
                     className="bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold py-2 px-6 rounded transition-colors"
                   >
                     Buy Securely

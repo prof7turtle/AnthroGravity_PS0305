@@ -4,6 +4,7 @@ import { Types } from 'mongoose';
 import Escrow, { EscrowState, EscrowType } from '../models/Escrow';
 import TxRegistry from '../models/TxRegistry';
 import {
+  algorandService,
   discoverFundingTransaction,
   prepareFundingTransaction,
   toLoraAppUrl,
@@ -31,8 +32,8 @@ const resolveReceiverAddress = (escrow: any) => {
   const escrowAddress = sanitizeAddress(escrow?.appAddress);
   const envAddress = sanitizeAddress(process.env.ESCROW_RECEIVER_ADDRESS);
 
-  if (envAddress && isValidAlgorandAddress(envAddress)) return envAddress;
   if (escrowAddress && isValidAlgorandAddress(escrowAddress)) return escrowAddress;
+  if (envAddress && isValidAlgorandAddress(envAddress)) return envAddress;
   return '';
 };
 
@@ -42,6 +43,19 @@ const toEscrowType = (value: unknown): EscrowType => {
     return normalized;
   }
   return 'FREELANCE';
+};
+
+const toEscrowTypeCode = (value: EscrowType): number => {
+  if (value === 'MARKETPLACE') return 0;
+  if (value === 'P2P') return 1;
+  return 2;
+};
+
+const toDeadlineRounds = (deadlineHours: unknown): number => {
+  const parsed = Number(deadlineHours);
+  const safeHours = Number.isFinite(parsed) && parsed > 0 ? parsed : 72;
+  // Approximate Algorand round cadence at ~3.3 seconds per round.
+  return Math.max(1, Math.round(safeHours * 1100));
 };
 
 const appendActivity = (
@@ -200,7 +214,6 @@ router.post('/create', async (req, res) => {
       currency = 'USDC',
       deadlineHours = 72,
       requirements = [],
-      appAddress = process.env.ESCROW_RECEIVER_ADDRESS || '',
       webhookUrl,
     } = req.body;
 
@@ -221,19 +234,45 @@ router.post('/create', async (req, res) => {
     }
 
     const safeRequirements = Array.isArray(requirements) ? requirements.filter((item) => typeof item === 'string') : [];
+    const normalizedEscrowType = toEscrowType(escrowType);
 
     const requirementsHash = crypto
       .createHash('sha256')
       .update(safeRequirements.join('\n'))
       .digest('hex');
+    const requirementsHashBytes = new Uint8Array(Buffer.from(requirementsHash, 'hex'));
 
-    const createTxId = makeMockTxId('create');
-    const safeAppAddress = sanitizeAddress(appAddress);
+    const deadlineRounds = toDeadlineRounds(deadlineHours);
+    let createdViaFallback = false;
+    const { appId: newAppId, txId: createTxId } = await algorandService.createEscrowViaFactory(
+      sellerAddress,
+      itemName,
+      toEscrowTypeCode(normalizedEscrowType),
+      deadlineRounds,
+      requirementsHashBytes,
+    ).catch(async (factoryError: any) => {
+      const factoryMessage = String(factoryError?.message || '');
+      if (/txna\s+ApplicationArgs\s+0/i.test(factoryMessage) && /err opcode executed/i.test(factoryMessage)) {
+        createdViaFallback = true;
+        return algorandService.createEscrowDirectFromTemplate(
+          sellerAddress,
+          itemName,
+          toEscrowTypeCode(normalizedEscrowType),
+          deadlineRounds,
+          requirementsHashBytes,
+        );
+      }
+
+      throw factoryError;
+    });
+    const createdAppAddress = algorandService.getApplicationAddress(newAppId);
+
     const escrow = new Escrow({
       escrowId: makeEscrowId(),
-      appAddress: safeAppAddress,
+      appId: newAppId,
+      appAddress: createdAppAddress,
       state: 'CREATED',
-      escrowType: toEscrowType(escrowType),
+      escrowType: normalizedEscrowType,
       itemName,
       amount: Number(amount) || 0,
       currency,
@@ -250,7 +289,9 @@ router.post('/create', async (req, res) => {
           toState: 'CREATED',
           actor: buyerAddress || 'system',
           txId: createTxId,
-          note: 'Escrow created via API',
+          note: createdViaFallback
+            ? `Escrow created directly from template app ${newAppId} (factory fallback)`
+            : `Escrow created via factory child app ${newAppId}`,
         },
       ],
     });
@@ -273,7 +314,20 @@ router.post('/create', async (req, res) => {
 
     return res.status(201).json(escrow);
   } catch (err: any) {
-    return res.status(500).json({ message: 'Failed to create escrow', error: err.message });
+    const message = String(err?.message || 'Failed to create escrow');
+    if (/txna\s+ApplicationArgs\s+0/i.test(message) && /err opcode executed/i.test(message)) {
+      return res.status(400).json({
+        message: 'Factory and template app are incompatible (child create selector/args mismatch). Use the template app ID deployed with this factory and update ESCROW_CONTRACT_TEMPLATE_APP_ID.',
+        error: message,
+      });
+    }
+    if (/unavailable App/i.test(message) && /AppApprovalProgram/i.test(message)) {
+      return res.status(400).json({
+        message: 'Factory could not read the template app approval program. Ensure template app is included in foreign apps and the app IDs match the active network.',
+        error: message,
+      });
+    }
+    return res.status(500).json({ message: 'Failed to create escrow', error: message });
   }
 });
 
@@ -318,22 +372,55 @@ router.post('/:id/fund', async (req, res) => {
       return res.status(400).json({ message: 'Escrow buyer must be set at creation time' });
     }
 
-    const unsigned = await prepareFundingTransaction({
-      sender: buyerAddress,
-      receiver: receiverAddress,
-      amount: escrow.amount,
-      escrowId: escrow.escrowId,
-    });
-
-    const payload = {
-      escrowId: escrow.escrowId,
-      receiver: receiverAddress,
-      amount: escrow.amount,
-      amountMicroAlgo: escrow.amount,
-      network: 'testnet',
-      unsignedTransaction: unsigned.unsignedTransaction,
-      unsignedTxns: [unsigned.unsignedTransaction],
+    let payload: {
+      escrowId: string;
+      receiver: string;
+      amount: number;
+      amountMicroAlgo: number;
+      network: string;
+      unsignedTransaction: string;
+      unsignedTxns: string[];
     };
+
+    if (escrow.appId && Number(escrow.appId) > 0) {
+      try {
+        await algorandService.ensureApplicationAccountMinBalance(Number(escrow.appId));
+      } catch (reserveErr: any) {
+        const reserveMessage = String(reserveErr?.message || 'Unknown reserve top-up error');
+        return res.status(400).json({
+          message: 'Escrow app account is below minimum balance and reserve top-up failed. Fund the server oracle account (ESCROW_MNEMONIC) and retry.',
+          error: reserveMessage,
+        });
+      }
+
+      const unsignedTxns = await algorandService.buildFundTransactions(Number(escrow.appId), buyerAddress, escrow.amount);
+      payload = {
+        escrowId: escrow.escrowId,
+        receiver: escrow.appAddress || receiverAddress,
+        amount: escrow.amount,
+        amountMicroAlgo: escrow.amount,
+        network: 'testnet',
+        unsignedTransaction: unsignedTxns[0],
+        unsignedTxns,
+      };
+    } else {
+      const unsigned = await prepareFundingTransaction({
+        sender: buyerAddress,
+        receiver: receiverAddress,
+        amount: escrow.amount,
+        escrowId: escrow.escrowId,
+      });
+
+      payload = {
+        escrowId: escrow.escrowId,
+        receiver: receiverAddress,
+        amount: escrow.amount,
+        amountMicroAlgo: escrow.amount,
+        network: 'testnet',
+        unsignedTransaction: unsigned.unsignedTransaction,
+        unsignedTxns: [unsigned.unsignedTransaction],
+      };
+    }
 
     if (isSpecResponse(req)) {
       return res.json({

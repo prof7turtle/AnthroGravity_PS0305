@@ -3,9 +3,11 @@ import { Link, useParams } from 'react-router-dom';
 import { useWallet } from '@txnlab/use-wallet-react';
 import algosdk from 'algosdk';
 import {
+  confirmEscrowFund,
   deliverEscrow,
   disputeEscrow,
   getEscrow,
+  requestFundEscrowTransaction,
   type EscrowRecord,
 } from '../lib/escrowApi';
 
@@ -98,9 +100,17 @@ const truncateAddress = (value: string) => {
   return `${value.slice(0, 8)}...${value.slice(-8)}`;
 };
 
+const formatAlgoFromMicro = (microAlgo: number): string => {
+  const algo = Number(microAlgo || 0) / 1_000_000;
+  return algo.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 6,
+  });
+};
+
 const EscrowDetail = () => {
   const { appId } = useParams<{ appId: string }>();
-  const { activeAddress, signTransactions } = useWallet();
+  const { activeAddress, signTransactions, algodClient } = useWallet();
   const [escrow, setEscrow] = useState<EscrowView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -188,29 +198,33 @@ const EscrowDetail = () => {
         if (!buyerAddress) throw new Error('Buyer address is required to prepare funding transaction');
         if (!activeAddress) throw new Error('Connect wallet before funding');
 
-        const amountMicroAlgo = Math.max(1, Number(escrow?.amount || 0) * 1_000_000);
-        const prepare = await fetch(`http://localhost:5000/api/escrow/${effectiveEscrowId}/fund`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ buyerAddress, amountMicroAlgo }),
-        });
+        const preparedPayload = await requestFundEscrowTransaction(effectiveEscrowId, { buyerAddress }) as {
+          receiver?: string;
+          amount?: number;
+          unsignedTransaction?: string;
+          unsignedTxns?: string[];
+          unsignedTransactions?: string[];
+        };
 
-        if (!prepare.ok) {
-          const payload = await prepare.json().catch(() => ({}));
-          throw new Error(payload.error || 'Failed to prepare fund transaction');
-        }
+        const unsignedCandidates = Array.isArray(preparedPayload?.unsignedTxns) && preparedPayload.unsignedTxns.length > 0
+          ? preparedPayload.unsignedTxns
+          : Array.isArray(preparedPayload?.unsignedTransactions) && preparedPayload.unsignedTransactions.length > 0
+            ? preparedPayload.unsignedTransactions
+            : preparedPayload?.unsignedTransaction
+              ? [preparedPayload.unsignedTransaction]
+              : [];
 
-        const preparedPayload = await prepare.json();
-        const unsignedTxns: string[] =
-          preparedPayload?.data?.unsignedTxns ||
-          preparedPayload?.data?.unsignedTransactions ||
-          [];
+        // Some API variants expose both unsignedTransaction and unsignedTxns for the same txn.
+        // Dedupe here to avoid accidentally submitting an ungrouped duplicate as a 2-txn group.
+        const unsignedTxnsRaw = Array.from(new Set(
+          unsignedCandidates.filter((txn): txn is string => typeof txn === 'string' && txn.length > 0),
+        ));
 
-        if (!Array.isArray(unsignedTxns) || unsignedTxns.length === 0) {
+        if (unsignedTxnsRaw.length === 0) {
           throw new Error('Backend did not return unsigned transactions');
         }
 
-        const decodedTransactions = unsignedTxns.map((encoded: string) => {
+        const decodedTransactions = unsignedTxnsRaw.map((encoded: string) => {
           const bytes = Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0));
           return algosdk.decodeUnsignedTransaction(bytes);
         });
@@ -229,24 +243,16 @@ const EscrowDetail = () => {
           throw new Error('Wallet did not return signed transactions');
         }
 
-        const submit = await fetch('http://localhost:5000/api/escrow/submit-signed', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ signedTxns }),
-        });
+        const submitPayload = await algodClient.sendRawTransaction(signedTxns.length === 1 ? signedTxns[0] : signedTxns).do();
+        await algosdk.waitForConfirmation(algodClient, submitPayload.txid, 4);
+        await confirmEscrowFund(effectiveEscrowId, { txId: submitPayload.txid });
 
-        if (!submit.ok) {
-          const payload = await submit.json().catch(() => ({}));
-          throw new Error(payload.error || 'Failed to submit signed transactions');
-        }
-
-        const submitPayload = await submit.json();
         setFundingPreview({
-          receiver: preparedPayload?.data?.escrowAddress || '',
-          amount: amountMicroAlgo,
-          unsignedTransactions: unsignedTxns,
+          receiver: preparedPayload?.receiver || '',
+          amount: Number(preparedPayload?.amount || 0),
+          unsignedTransactions: unsignedTxnsRaw,
         });
-        const txId = submitPayload?.data?.txId;
+        const txId = submitPayload?.txid;
         if (txId) {
           setActionStatus(`Funding submitted successfully. Tx: ${txId}`);
         }
@@ -326,8 +332,13 @@ const EscrowDetail = () => {
               <div>
                 <p className="text-xs uppercase tracking-widest text-white/50">Amount</p>
                 <p className="mt-2 text-sm font-semibold text-white">
-                  {escrow.amount.toLocaleString()} {escrow.currency}
+                  {escrow.currency === 'ALGO'
+                    ? `${formatAlgoFromMicro(escrow.amount)} ALGO`
+                    : `${escrow.amount.toLocaleString()} ${escrow.currency}`}
                 </p>
+                {escrow.currency === 'ALGO' && (
+                  <p className="mt-1 text-xs text-white/55">{escrow.amount.toLocaleString()} microALGO</p>
+                )}
               </div>
 
               <div>
@@ -350,6 +361,12 @@ const EscrowDetail = () => {
                   <p className="mt-2 text-sm text-white/60">LORA link is unavailable until appId is set.</p>
                 )}
               </div>
+
+              {escrow.state === 'CREATED' && (
+                <p className="md:col-span-2 rounded-lg border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
+                  On-chain app is initialized. Buyer and amount will move from default values to funded values after you sign and submit the Fund transaction group.
+                </p>
+              )}
             </article>
 
             <article className="rounded-2xl border border-white/10 bg-[#11111a] p-6">
