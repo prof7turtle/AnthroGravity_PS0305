@@ -229,17 +229,15 @@ const EscrowDetail = () => {
           return algosdk.decodeUnsignedTransaction(bytes);
         });
 
-        if (decodedTransactions.length > 1) {
-          const hasMissingGroup = decodedTransactions.some((txn) => !txn.group);
-          if (hasMissingGroup) {
-            throw new Error('Backend returned multiple unsigned transactions without a group ID.');
-          }
-        }
+        const signedResult = await signTransactions([decodedTransactions]);
 
-        const signedTransactions = await signTransactions(decodedTransactions as any);
-        const signedTxns = (signedTransactions || [])
-          .filter((blob: Uint8Array | null | undefined): blob is Uint8Array => blob instanceof Uint8Array)
-          .map((blob: Uint8Array) => blob);
+        const candidateBlobs: unknown[] = Array.isArray(signedResult?.[0])
+          ? (signedResult[0] as unknown[])
+          : (signedResult as unknown[]);
+
+        const signedTxns = candidateBlobs
+          .filter((blob): blob is Uint8Array => blob instanceof Uint8Array)
+          .map((blob) => btoa(String.fromCharCode(...blob)));
 
         if (!signedTxns.length) {
           throw new Error('Wallet did not return signed transactions');
