@@ -126,3 +126,10 @@ export const resolveEscrow = async (
   const res = await axios.post<EscrowRecord>(`${API_BASE}/api/escrow/${id}/resolve`, payload);
   return res.data;
 };
+
+export const listEscrowsByAddress = async (address: string) => {
+  const normalized = String(address || '').trim();
+  if (!normalized) return [] as EscrowRecord[];
+  const res = await axios.get<EscrowRecord[]>(`${API_BASE}/api/escrow/list/${normalized}`);
+  return res.data;
+};
