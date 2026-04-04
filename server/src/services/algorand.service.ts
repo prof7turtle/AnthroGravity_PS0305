@@ -246,10 +246,31 @@ class AlgorandService {
       .getSelector();
     const encode = (type: string, value: any) => algosdk.ABIType.from(type).encode(value);
 
+    const factoryState = await this.getGlobalState(this.factoryAppId).catch(() => ({} as Record<string, any>));
+    const decodeAddressFromState = (key: string): string | null => {
+      const raw = factoryState?.[key];
+      if (!raw || !(raw instanceof Buffer)) return null;
+      try {
+        return algosdk.encodeAddress(new Uint8Array(raw));
+      } catch {
+        return null;
+      }
+    };
+
+    const treasuryAddress = decodeAddressFromState('platform_treasury') || process.env.PLATFORM_TREASURY_ADDRESS || '';
+    const arbiterAddress = decodeAddressFromState('arbiter_address') || process.env.ARBITER_ADDRESS || '';
+    const appAccounts = Array.from(new Set([
+      seller,
+      treasuryAddress,
+      arbiterAddress,
+    ].filter((address) => !!address && algosdk.isValidAddress(address))));
+
     const appCallTxn = algosdk.makeApplicationCallTxnFromObject({
       from: this.oracleAccount.addr.toString(),
       appIndex: this.factoryAppId,
       onComplete: algosdk.OnApplicationComplete.NoOpOC,
+      accounts: appAccounts,
+      foreignApps: [this.templateAppId],
       appArgs: [
         selector,
         encode('address', seller),
@@ -273,6 +294,120 @@ class AlgorandService {
     const newAppId = Number(confirmation?.['inner-txns']?.[0]?.['application-index'] || 0);
     if (!newAppId) {
       throw new Error('Factory call succeeded but no child app id was returned');
+    }
+
+    return { appId: newAppId, txId };
+  }
+
+  /**
+   * Create escrow directly from template program as a fallback when factory/template ABI is incompatible.
+   */
+  async createEscrowDirectFromTemplate(
+    seller: string,
+    itemName: string,
+    escrowType: number,
+    deadlineRounds: number,
+    requirementsHash: Uint8Array,
+  ): Promise<{ appId: number; txId: string }> {
+    if (!this.oracleAccount) {
+      throw new Error('Oracle account not initialized');
+    }
+
+    if (!this.templateAppId || this.templateAppId <= 0) {
+      throw new Error('Template App ID is not configured');
+    }
+
+    const templateAppInfo: any = await this.getApplicationInfo(this.templateAppId);
+    const templateParams: any = templateAppInfo?.params || {};
+    const globalSchema: any = templateParams['global-state-schema'] || templateParams.globalStateSchema || {};
+    const localSchema: any = templateParams['local-state-schema'] || templateParams.localStateSchema || {};
+
+    const decodeProgram = (value: unknown, label: string): Uint8Array => {
+      if (value instanceof Uint8Array) return value;
+      if (Buffer.isBuffer(value)) return new Uint8Array(value);
+      if (typeof value === 'string' && value.length > 0) return new Uint8Array(Buffer.from(value, 'base64'));
+      throw new Error(`Template ${label} is missing or invalid`);
+    };
+
+    const approvalProgram = decodeProgram(
+      templateParams['approval-program'] || templateParams.approvalProgram,
+      'approval program',
+    );
+    const clearProgram = decodeProgram(
+      templateParams['clear-state-program'] || templateParams.clearStateProgram,
+      'clear program',
+    );
+
+    const numGlobalInts = Number(globalSchema['num-uint'] ?? globalSchema.numUint ?? 0);
+    const numGlobalByteSlices = Number(globalSchema['num-byte-slice'] ?? globalSchema.numByteSlice ?? 0);
+    const numLocalInts = Number(localSchema['num-uint'] ?? localSchema.numUint ?? 0);
+    const numLocalByteSlices = Number(localSchema['num-byte-slice'] ?? localSchema.numByteSlice ?? 0);
+    const extraPages = Number(templateParams['extra-program-pages'] ?? templateParams.extraProgramPages ?? 0);
+
+    const factoryState = this.factoryAppId > 0
+      ? await this.getGlobalState(this.factoryAppId).catch(() => ({} as Record<string, any>))
+      : ({} as Record<string, any>);
+
+    const decodeAddressFromState = (key: string): string | null => {
+      const raw = factoryState?.[key];
+      if (!raw || !(raw instanceof Buffer)) return null;
+      try {
+        return algosdk.encodeAddress(new Uint8Array(raw));
+      } catch {
+        return null;
+      }
+    };
+
+    const treasuryAddress = decodeAddressFromState('platform_treasury') || process.env.PLATFORM_TREASURY_ADDRESS || seller;
+    const arbiterAddress = decodeAddressFromState('arbiter_address') || process.env.ARBITER_ADDRESS || seller;
+    const feeBpsFromState = Number(factoryState?.platform_fee_bps ?? 0);
+    const feeBps = feeBpsFromState > 0 ? feeBpsFromState : Number(process.env.PLATFORM_FEE_BPS || 50);
+
+    const currentRound = await this.getCurrentRound();
+    const deadlineRound = currentRound + Math.max(1, Number(deadlineRounds || 1));
+    const params = await this.getSuggestedParams();
+    const encode = (type: string, value: any) => algosdk.ABIType.from(type).encode(value);
+    const createSelector = algosdk
+      .ABIMethod
+      .fromSignature('createApplication(address,byte[],uint64,uint64,byte[],uint64,address,address)void')
+      .getSelector();
+
+    const appCreateTxn = algosdk.makeApplicationCallTxnFromObject({
+      from: this.oracleAccount.addr.toString(),
+      onComplete: algosdk.OnApplicationComplete.NoOpOC,
+      approvalProgram,
+      clearProgram,
+      numGlobalInts,
+      numGlobalByteSlices,
+      numLocalInts,
+      numLocalByteSlices,
+      extraPages,
+      accounts: [seller, treasuryAddress, arbiterAddress],
+      appArgs: [
+        createSelector,
+        encode('address', seller),
+        encode('byte[]', new Uint8Array(Buffer.from(itemName, 'utf-8'))),
+        encode('uint64', BigInt(escrowType)),
+        encode('uint64', BigInt(deadlineRound)),
+        encode('byte[]', requirementsHash),
+        encode('uint64', BigInt(feeBps)),
+        encode('address', treasuryAddress),
+        encode('address', arbiterAddress),
+      ],
+      suggestedParams: {
+        ...params,
+        fee: 4000,
+        flatFee: true,
+      },
+    });
+
+    const signed = appCreateTxn.signTxn(this.oracleAccount.sk);
+    const { txId } = (await this.algodClient.sendRawTransaction(signed).do()) as any;
+    const confirmation: any = await algosdk.waitForConfirmation(this.algodClient, txId, 4);
+    const newAppId = Number(confirmation?.['application-index'] || 0);
+
+    if (!newAppId) {
+      throw new Error('Direct template create succeeded but no app id was returned');
     }
 
     return { appId: newAppId, txId };
@@ -311,6 +446,60 @@ class AlgorandService {
       Buffer.from(algosdk.encodeUnsignedTransaction(payTxn)).toString('base64'),
       Buffer.from(algosdk.encodeUnsignedTransaction(appCallTxn)).toString('base64'),
     ];
+  }
+
+  /**
+   * Ensure application account has at least its protocol-required minimum balance.
+   * This is required for low-value escrows where fund() amount can be below min balance.
+   */
+  async ensureApplicationAccountMinBalance(appId: number): Promise<{
+    appAddress: string;
+    currentBalance: number;
+    minBalance: number;
+    topUpAmount: number;
+    toppedUp: boolean;
+    txId?: string;
+  }> {
+    const appAddress = this.getApplicationAddress(appId);
+    const accountInfo: any = await this.getAccountInfo(appAddress);
+    const currentBalance = Number(accountInfo?.amount || 0);
+    const minBalance = Number(accountInfo?.['min-balance'] ?? accountInfo?.minBalance ?? 100_000);
+
+    if (currentBalance >= minBalance) {
+      return {
+        appAddress,
+        currentBalance,
+        minBalance,
+        topUpAmount: 0,
+        toppedUp: false,
+      };
+    }
+
+    if (!this.oracleAccount) {
+      throw new Error('Oracle account not initialized for app min-balance top-up');
+    }
+
+    const topUpAmount = minBalance - currentBalance;
+    const params = await this.getSuggestedParams();
+    const topUpTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+      from: this.oracleAccount.addr.toString(),
+      to: appAddress,
+      amount: topUpAmount,
+      suggestedParams: params,
+    });
+
+    const signed = topUpTxn.signTxn(this.oracleAccount.sk);
+    const { txId } = (await this.algodClient.sendRawTransaction(signed).do()) as any;
+    await algosdk.waitForConfirmation(this.algodClient, txId, 4);
+
+    return {
+      appAddress,
+      currentBalance,
+      minBalance,
+      topUpAmount,
+      toppedUp: true,
+      txId,
+    };
   }
 
   /**
