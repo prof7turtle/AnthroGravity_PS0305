@@ -4,6 +4,7 @@ import {
   deliverEscrow,
   disputeEscrow,
   getEscrow,
+  listEscrowsByAddress,
   refundEscrow,
   resolveEscrow,
   withdrawDisputeEscrow,
@@ -76,9 +77,12 @@ const Merchant = () => {
   const [busyTrackingIds, setBusyTrackingIds] = useState<string[]>([]);
   const [trackedShipments, setTrackedShipments] = useState<TrackedShipment[]>([]);
   const [disputeEscrowIdInput, setDisputeEscrowIdInput] = useState('');
+  const [disputeAddressInput, setDisputeAddressInput] = useState('');
   const [disputeActorInput, setDisputeActorInput] = useState('merchant-dashboard');
+  const [showOnlyActiveDisputes, setShowOnlyActiveDisputes] = useState(true);
   const [isLoadingDispute, setIsLoadingDispute] = useState(false);
   const [disputeCases, setDisputeCases] = useState<DisputeCase[]>([]);
+  const [disputeNotes, setDisputeNotes] = useState<Record<string, string>>({});
   const [disputeStatus, setDisputeStatus] = useState('');
   const [disputeError, setDisputeError] = useState('');
 
@@ -285,6 +289,89 @@ const Merchant = () => {
     }
   };
 
+  const loadDisputesByAddress = async () => {
+    const address = disputeAddressInput.trim();
+    const actor = disputeActorInput.trim() || 'merchant-dashboard';
+
+    setDisputeStatus('');
+    setDisputeError('');
+
+    if (!address) {
+      setDisputeError('Address is required to load disputes list.');
+      return;
+    }
+
+    setIsLoadingDispute(true);
+    try {
+      const escrows = await listEscrowsByAddress(address);
+      const byEscrowId = new Map<string, EscrowRecord>();
+      escrows.forEach((escrow) => byEscrowId.set(escrow.escrowId, escrow));
+      const uniqueEscrows = Array.from(byEscrowId.values());
+
+      const relevant = showOnlyActiveDisputes
+        ? uniqueEscrows.filter((escrow) => escrow.state === 'DISPUTED')
+        : uniqueEscrows.filter((escrow) =>
+            escrow.state === 'FUNDED' ||
+            escrow.state === 'DISPUTED' ||
+            escrow.state === 'EXPIRED' ||
+            escrow.state === 'REFUNDED' ||
+            escrow.state === 'COMPLETED',
+          );
+
+      if (relevant.length === 0) {
+        setDisputeCases([]);
+        setDisputeStatus(
+          showOnlyActiveDisputes
+            ? 'No active disputed escrows found for this address.'
+            : 'No escrow cases found for this address.',
+        );
+        return;
+      }
+
+      setDisputeCases(
+        relevant.map((escrow) => ({
+          escrowId: escrow.escrowId,
+          actor,
+          escrow,
+          busy: false,
+          message: `Loaded by address. Current state: ${escrow.state}`,
+          error: '',
+          lastUpdate: new Date().toISOString(),
+        })),
+      );
+      setDisputeStatus(
+        showOnlyActiveDisputes
+          ? `Loaded ${relevant.length} active dispute case(s) for ${address}.`
+          : `Loaded ${relevant.length} escrow case(s) for ${address}.`,
+      );
+    } catch (err) {
+      setDisputeError(normalizeError(err));
+    } finally {
+      setIsLoadingDispute(false);
+    }
+  };
+
+  const setDisputeNote = (escrowId: string, note: string) => {
+    setDisputeNotes((prev) => ({ ...prev, [escrowId]: note }));
+  };
+
+  const latestDisputeNote = (escrow: EscrowRecord) => {
+    const disputeActions = new Set([
+      'RAISE_DISPUTE',
+      'WITHDRAW_DISPUTE',
+      'ARBITRATE_RELEASE',
+      'ARBITRATE_REFUND',
+      'REFUND',
+    ]);
+
+    const latest = escrow.activityLogs
+      .slice()
+      .reverse()
+      .find((entry) => disputeActions.has(entry.action));
+
+    return latest?.note || '';
+  };
+
   const runDisputeAction = async (
     escrowId: string,
     actor: string,
@@ -295,17 +382,18 @@ const Merchant = () => {
     updateDisputeCase(escrowId, (entry) => ({ ...entry, busy: true, error: '' }));
 
     try {
+      const note = (disputeNotes[escrowId] || '').trim();
       let updated: EscrowRecord;
       if (action === 'raise') {
-        updated = await disputeEscrow(escrowId, { actor });
+        updated = await disputeEscrow(escrowId, { actor, reason: note });
       } else if (action === 'withdraw') {
-        updated = await withdrawDisputeEscrow(escrowId, { actor });
+        updated = await withdrawDisputeEscrow(escrowId, { actor, note });
       } else if (action === 'refund') {
-        updated = await refundEscrow(escrowId, { actor });
+        updated = await refundEscrow(escrowId, { actor, reason: note });
       } else if (action === 'arb-release') {
-        updated = await resolveEscrow(escrowId, { releaseToSeller: true, actor });
+        updated = await resolveEscrow(escrowId, { releaseToSeller: true, actor, decisionNote: note });
       } else {
-        updated = await resolveEscrow(escrowId, { releaseToSeller: false, actor });
+        updated = await resolveEscrow(escrowId, { releaseToSeller: false, actor, decisionNote: note });
       }
 
       const actionName =
@@ -593,13 +681,22 @@ const Merchant = () => {
                 </p>
 
                 <div className="rounded-xl border border-white/10 bg-black/25 p-5 mb-6">
-                  <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+                  <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <label className="mb-2 block text-xs uppercase tracking-widest text-white/60">Escrow ID</label>
                       <input
                         value={disputeEscrowIdInput}
                         onChange={(event) => setDisputeEscrowIdInput(event.target.value)}
                         placeholder="AE-XXXX or appId"
+                        className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2.5 text-sm text-white outline-none focus:border-[#c084fc]/70"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs uppercase tracking-widest text-white/60">Address (Load All Cases)</label>
+                      <input
+                        value={disputeAddressInput}
+                        onChange={(event) => setDisputeAddressInput(event.target.value)}
+                        placeholder="Buyer or seller Algorand address"
                         className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2.5 text-sm text-white outline-none focus:border-[#c084fc]/70"
                       />
                     </div>
@@ -612,16 +709,46 @@ const Merchant = () => {
                         className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2.5 text-sm text-white outline-none focus:border-[#c084fc]/70"
                       />
                     </div>
-                    <div className="flex items-end">
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      onClick={() => void loadDisputeCase()}
+                      disabled={isLoadingDispute}
+                      className="rounded-lg bg-[#c084fc] px-4 py-2.5 text-sm font-bold text-black transition hover:bg-[#d8b4fe] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isLoadingDispute ? 'Loading...' : 'Load Escrow'}
+                    </button>
+                    <button
+                      onClick={() => void loadDisputesByAddress()}
+                      disabled={isLoadingDispute}
+                      className="rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Load by Address
+                    </button>
+                    <div className="flex items-end md:ml-auto">
                       <button
-                        onClick={() => void loadDisputeCase()}
-                        disabled={isLoadingDispute}
-                        className="w-full rounded-lg bg-[#c084fc] px-4 py-2.5 text-sm font-bold text-black transition hover:bg-[#d8b4fe] disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={() => {
+                          setDisputeCases([]);
+                          setDisputeStatus('Dispute panel cleared.');
+                          setDisputeError('');
+                        }}
+                        className="rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10"
                       >
-                        {isLoadingDispute ? 'Loading...' : 'Load Escrow'}
+                        Clear Cases
                       </button>
                     </div>
                   </div>
+
+                  <label className="mt-4 inline-flex items-center gap-2 text-xs text-white/70">
+                    <input
+                      type="checkbox"
+                      checked={showOnlyActiveDisputes}
+                      onChange={(event) => setShowOnlyActiveDisputes(event.target.checked)}
+                      className="h-3.5 w-3.5 rounded border-white/30 bg-black/30"
+                    />
+                    Show only active DISPUTED escrows when loading by address
+                  </label>
 
                   {disputeError && <p className="mt-3 text-sm text-rose-300">{disputeError}</p>}
                   {disputeStatus && <p className="mt-3 text-sm text-emerald-300">{disputeStatus}</p>}
@@ -674,6 +801,20 @@ const Merchant = () => {
 
                           {entry.error && <p className="mt-3 text-sm text-rose-300">{entry.error}</p>}
                           {entry.message && <p className="mt-3 text-sm text-emerald-300">{entry.message}</p>}
+                          {latestDisputeNote(escrow) && (
+                            <p className="mt-2 text-xs text-white/60">Latest dispute note: {latestDisputeNote(escrow)}</p>
+                          )}
+
+                          <div className="mt-3">
+                            <label className="mb-2 block text-xs uppercase tracking-widest text-white/55">Reason / Evidence / Decision Note</label>
+                            <textarea
+                              value={disputeNotes[entry.escrowId] || ''}
+                              onChange={(event) => setDisputeNote(entry.escrowId, event.target.value)}
+                              rows={2}
+                              placeholder="Add dispute reason, refund reason, or arbiter decision note"
+                              className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2 text-xs text-white outline-none focus:border-[#c084fc]/70"
+                            />
+                          </div>
 
                           <div className="mt-4 flex flex-wrap gap-2">
                             <button

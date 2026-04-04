@@ -104,24 +104,24 @@ export const deliverEscrow = async (id: string, payload?: { actor?: string }) =>
   return res.data;
 };
 
-export const disputeEscrow = async (id: string, payload?: { actor?: string }) => {
+export const disputeEscrow = async (id: string, payload?: { actor?: string; reason?: string }) => {
   const res = await axios.post<EscrowRecord>(`${API_BASE}/api/escrow/${id}/dispute`, payload ?? {});
   return res.data;
 };
 
-export const withdrawDisputeEscrow = async (id: string, payload?: { actor?: string }) => {
+export const withdrawDisputeEscrow = async (id: string, payload?: { actor?: string; note?: string }) => {
   const res = await axios.post<EscrowRecord>(`${API_BASE}/api/escrow/${id}/withdraw-dispute`, payload ?? {});
   return res.data;
 };
 
-export const refundEscrow = async (id: string, payload?: { actor?: string }) => {
+export const refundEscrow = async (id: string, payload?: { actor?: string; reason?: string }) => {
   const res = await axios.post<EscrowRecord>(`${API_BASE}/api/escrow/${id}/refund`, payload ?? {});
   return res.data;
 };
 
 export const resolveEscrow = async (
   id: string,
-  payload: { releaseToSeller: boolean; actor?: string },
+  payload: { releaseToSeller: boolean; actor?: string; decisionNote?: string },
 ) => {
   const res = await axios.post<EscrowRecord>(`${API_BASE}/api/escrow/${id}/resolve`, payload);
   return res.data;

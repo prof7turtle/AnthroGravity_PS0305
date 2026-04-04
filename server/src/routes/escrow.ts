@@ -88,6 +88,14 @@ const applyTransition = (
   appendActivity(escrow, action, fromState, toState, actor, txId, note);
 };
 
+const respondWithTransitionError = (res: any, err: unknown, fallbackMessage: string) => {
+  const message = String((err as any)?.message || fallbackMessage);
+  if (/^Invalid transition:/i.test(message)) {
+    return res.status(400).json({ message });
+  }
+  return res.status(500).json({ message: fallbackMessage, error: message });
+};
+
 const resolveEscrow = async (id: string) => {
   const trimmedId = String(id || '').trim();
 
@@ -699,16 +707,18 @@ router.post('/:id/dispute', async (req, res) => {
     const escrow = await resolveEscrow(req.params.id);
     if (!escrow) return res.status(404).json({ message: 'Escrow not found' });
 
-    const { actor = '' } = req.body;
+    const { actor = '', reason = '' } = req.body;
     const txId = makeMockTxId('dispute');
-    applyTransition(escrow, ['FUNDED'], 'DISPUTED', 'RAISE_DISPUTE', actor, txId, 'Dispute raised by user');
+    const reasonText = String(reason || '').trim();
+    const note = reasonText ? `Dispute raised by user. Reason: ${reasonText}` : 'Dispute raised by user';
+    applyTransition(escrow, ['FUNDED'], 'DISPUTED', 'RAISE_DISPUTE', actor, txId, note);
     ensureTxIds(escrow).dispute = txId;
 
     await escrow.save();
     await dispatchStateWebhook(escrow, txId);
     return res.json(escrow);
   } catch (err: any) {
-    return res.status(500).json({ message: 'Failed to raise dispute', error: err.message });
+    return respondWithTransitionError(res, err, 'Failed to raise dispute');
   }
 });
 
@@ -717,8 +727,9 @@ router.post('/:id/withdraw-dispute', async (req, res) => {
     const escrow = await resolveEscrow(req.params.id);
     if (!escrow) return res.status(404).json({ message: 'Escrow not found' });
 
-    const { actor = '' } = req.body;
+    const { actor = '', note = '' } = req.body;
     const txId = makeMockTxId('withdraw-dispute');
+    const noteText = String(note || '').trim();
 
     applyTransition(
       escrow,
@@ -727,14 +738,14 @@ router.post('/:id/withdraw-dispute', async (req, res) => {
       'WITHDRAW_DISPUTE',
       actor,
       txId,
-      'Dispute withdrawn by user; escrow remains funded and locked',
+      noteText ? `Dispute withdrawn by user; ${noteText}` : 'Dispute withdrawn by user; escrow remains funded and locked',
     );
 
     await escrow.save();
     await dispatchStateWebhook(escrow, txId);
     return res.json(escrow);
   } catch (err: any) {
-    return res.status(500).json({ message: 'Failed to withdraw dispute', error: err.message });
+    return respondWithTransitionError(res, err, 'Failed to withdraw dispute');
   }
 });
 
@@ -743,8 +754,9 @@ router.post('/:id/refund', async (req, res) => {
     const escrow = await resolveEscrow(req.params.id);
     if (!escrow) return res.status(404).json({ message: 'Escrow not found' });
 
-    const { actor = '' } = req.body;
+    const { actor = '', reason = '' } = req.body;
     const txId = makeMockTxId('refund');
+    const reasonText = String(reason || '').trim();
     applyTransition(
       escrow,
       ['FUNDED', 'DISPUTED', 'EXPIRED'],
@@ -752,7 +764,7 @@ router.post('/:id/refund', async (req, res) => {
       'REFUND',
       actor,
       txId,
-      'Funds refunded to buyer',
+      reasonText ? `Funds refunded to buyer. Reason: ${reasonText}` : 'Funds refunded to buyer',
     );
     ensureTxIds(escrow).refund = txId;
 
@@ -760,7 +772,7 @@ router.post('/:id/refund', async (req, res) => {
     await dispatchStateWebhook(escrow, txId);
     return res.json(escrow);
   } catch (err: any) {
-    return res.status(500).json({ message: 'Failed to refund escrow', error: err.message });
+    return respondWithTransitionError(res, err, 'Failed to refund escrow');
   }
 });
 
@@ -769,27 +781,45 @@ const arbitrateHandler = async (req: any, res: any) => {
     const escrow = await resolveEscrow(req.params.id);
     if (!escrow) return res.status(404).json({ message: 'Escrow not found' });
 
-    const { releaseToSeller = false, actor = 'arbiter' } = req.body;
+    const { releaseToSeller = false, actor = 'arbiter', decisionNote = '' } = req.body;
     if (escrow.state !== 'DISPUTED') {
       return res.status(400).json({ message: `Cannot resolve escrow in ${escrow.state} state` });
     }
 
+    const decisionText = String(decisionNote || '').trim();
+
     if (releaseToSeller) {
       const txId = makeMockTxId('release');
       ensureTxIds(escrow).release = txId;
-      applyTransition(escrow, ['DISPUTED'], 'COMPLETED', 'ARBITRATE_RELEASE', actor, txId, 'Arbiter released funds to seller');
+      applyTransition(
+        escrow,
+        ['DISPUTED'],
+        'COMPLETED',
+        'ARBITRATE_RELEASE',
+        actor,
+        txId,
+        decisionText ? `Arbiter released funds to seller. Note: ${decisionText}` : 'Arbiter released funds to seller',
+      );
       await dispatchStateWebhook(escrow, txId);
     } else {
       const txId = makeMockTxId('refund');
       ensureTxIds(escrow).refund = txId;
-      applyTransition(escrow, ['DISPUTED'], 'REFUNDED', 'ARBITRATE_REFUND', actor, txId, 'Arbiter refunded funds to buyer');
+      applyTransition(
+        escrow,
+        ['DISPUTED'],
+        'REFUNDED',
+        'ARBITRATE_REFUND',
+        actor,
+        txId,
+        decisionText ? `Arbiter refunded funds to buyer. Note: ${decisionText}` : 'Arbiter refunded funds to buyer',
+      );
       await dispatchStateWebhook(escrow, txId);
     }
 
     await escrow.save();
     return res.json(escrow);
   } catch (err: any) {
-    return res.status(500).json({ message: 'Failed to resolve escrow', error: err.message });
+    return respondWithTransitionError(res, err, 'Failed to resolve escrow');
   }
 };
 

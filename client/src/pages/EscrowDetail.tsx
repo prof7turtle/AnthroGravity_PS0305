@@ -246,7 +246,8 @@ const EscrowDetail = () => {
           return algosdk.decodeUnsignedTransaction(bytes);
         });
 
-        const signedResult = await signTransactions(decodedTransactions as any);
+        const signedInput = decodedTransactions as unknown as Parameters<typeof signTransactions>[0];
+        const signedResult = await signTransactions(signedInput);
 
         const candidateBlobs: unknown[] = Array.isArray(signedResult?.[0])
           ? (signedResult[0] as unknown[])
