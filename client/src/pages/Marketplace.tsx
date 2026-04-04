@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useWallet } from '@txnlab/use-wallet-react';
 import axios from 'axios';
 
+
 const DEMO_SELLER_ADDRESS = 'O46OHE3KQGD6YVJUGXI7MRI33ZSOT3ODXGKKPOQWM5RVZCEKVJFHVGWDL4';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
