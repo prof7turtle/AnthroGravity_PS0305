@@ -8,6 +8,7 @@ import Workflows from './pages/Freelance';
 import ApiIntegration from './pages/ApiIntegration';
 import Login from './pages/Login';
 import EscrowDetail from './pages/EscrowDetail.tsx';
+import MyEscrows from './pages/MyEscrows';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import './App.css';
@@ -25,6 +26,7 @@ function AppLayout() {
           <Route path="/login" element={<Login />} />
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/escrow/:appId" element={<EscrowDetail />} />
+          <Route path="/my-escrows" element={<MyEscrows />} />
 
           {/* Protected Merchant Dashboard */}
           <Route element={<ProtectedRoute allowedRole="merchant" />}>

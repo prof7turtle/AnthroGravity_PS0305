@@ -108,6 +108,22 @@ const formatAlgoFromMicro = (microAlgo: number): string => {
   });
 };
 
+const explainAlgodError = (message: string): string => {
+  const minBalanceMatch = message.match(/balance\s+(\d+)\s+below\s+min\s+(\d+)/i);
+  if (!minBalanceMatch) return message;
+
+  const balance = Number(minBalanceMatch[1] || 0);
+  const minBalance = Number(minBalanceMatch[2] || 0);
+  const shortfall = Math.max(0, minBalance - balance);
+
+  return [
+    'Insufficient spendable ALGO due to Algorand minimum balance reserve.',
+    `Wallet balance: ${formatAlgoFromMicro(balance)} ALGO (${balance.toLocaleString()} microALGO).`,
+    `Required minimum reserve: ${formatAlgoFromMicro(minBalance)} ALGO (${minBalance.toLocaleString()} microALGO).`,
+    `Add at least ${formatAlgoFromMicro(shortfall)} ALGO more (plus a small fee buffer), then retry.`,
+  ].join(' ');
+};
+
 const EscrowDetail = () => {
   const { appId } = useParams<{ appId: string }>();
   const { activeAddress, signTransactions, algodClient } = useWallet();
@@ -183,7 +199,8 @@ const EscrowDetail = () => {
       setActionStatus(successMessage);
       await loadEscrow();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Action failed');
+      const rawError = err instanceof Error ? err.message : 'Action failed';
+      setActionError(explainAlgodError(rawError));
     } finally {
       setBusyAction('');
     }
@@ -229,15 +246,14 @@ const EscrowDetail = () => {
           return algosdk.decodeUnsignedTransaction(bytes);
         });
 
-        const signedResult = await signTransactions([decodedTransactions]);
+        const signedResult = await signTransactions(decodedTransactions as any);
 
         const candidateBlobs: unknown[] = Array.isArray(signedResult?.[0])
           ? (signedResult[0] as unknown[])
           : (signedResult as unknown[]);
 
         const signedTxns = candidateBlobs
-          .filter((blob): blob is Uint8Array => blob instanceof Uint8Array)
-          .map((blob) => btoa(String.fromCharCode(...blob)));
+          .filter((blob): blob is Uint8Array => blob instanceof Uint8Array);
 
         if (!signedTxns.length) {
           throw new Error('Wallet did not return signed transactions');
@@ -466,6 +482,12 @@ const EscrowDetail = () => {
                 className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
               >
                 Back to Marketplace
+              </Link>
+              <Link
+                to="/my-escrows"
+                className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
+              >
+                View My Escrows
               </Link>
             </div>
           </div>

@@ -13,6 +13,7 @@ const Navbar = () => {
 
   const navLinks = [
     { name: 'Marketplace', path: '/marketplace' },
+    { name: 'My Escrows', path: '/my-escrows' },
     { name: 'Merchant Dashboard', path: '/merchant' },
     { name: 'Workflows', path: '/workflows' },
     { name: 'API Integration', path: '/api' },
