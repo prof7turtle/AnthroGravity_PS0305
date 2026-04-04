@@ -34,7 +34,6 @@ function AppLayout() {
           <Route path="/workflows" element={<Workflows />} />
           <Route path="/freelance" element={<Navigate to="/workflows" replace />} />
           <Route path="/api" element={<ApiIntegration />} />
-          <Route path="/escrow/:appId" element={<EscrowDetail />} />
         </Routes>
       </main>
       <Footer />
