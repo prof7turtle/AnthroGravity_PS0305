@@ -4,8 +4,12 @@ import { NetworkId, WalletId, WalletManager, WalletProvider } from '@txnlab/use-
 import './index.css'
 import App from './App.tsx'
 
-if (typeof (globalThis as any).global === 'undefined') {
-  (globalThis as any).global = globalThis
+declare global {
+  var global: typeof globalThis | undefined
+}
+
+if (typeof globalThis.global === 'undefined') {
+  globalThis.global = globalThis
 }
 
 const walletManager = new WalletManager({

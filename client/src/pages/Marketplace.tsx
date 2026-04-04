@@ -5,6 +5,7 @@ import { useWallet } from '@txnlab/use-wallet-react';
 import axios from 'axios';
 
 const DEMO_SELLER_ADDRESS = 'O46OHE3KQGD6YVJUGXI7MRI33ZSOT3ODXGKKPOQWM5RVZCEKVJFHVGWDL4';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const DUMMY_PRODUCTS = [
   {
@@ -57,7 +58,7 @@ const Marketplace = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/escrow/create', {
+      const response = await axios.post(`${API_BASE}/api/escrow/create`, {
         seller: DEMO_SELLER_ADDRESS,
         itemName: item?.name || `Custom ${assetType} transaction`,
         escrowType: 0,
@@ -69,8 +70,12 @@ const Marketplace = () => {
         throw new Error('Escrow app id not returned from backend');
       }
       navigate(`/escrow/${appId}`);
-    } catch (error: any) {
-      const message = error?.response?.data?.error || error?.message || 'Failed to create escrow';
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error)
+        ? (error.response?.data as { error?: string } | undefined)?.error || error.message
+        : error instanceof Error
+          ? error.message
+          : 'Failed to create escrow';
       alert(message);
     }
   };

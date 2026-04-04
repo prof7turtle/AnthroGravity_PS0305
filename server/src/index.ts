@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import authRoutes from './routes/auth';
 import escrowRoutes from './routes/escrow';
+import webhookRoutes from './routes/webhook';
 import { algorandService } from './services/algorand.service';
 
 const app = express();
@@ -22,6 +23,7 @@ algorandService.initializeOracle().catch(console.error);
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/escrow', escrowRoutes);
+app.use('/api/webhook', webhookRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

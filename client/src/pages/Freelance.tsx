@@ -125,6 +125,25 @@ const toInlineAnalysis = (value: string, maxLen = 320) => {
   return `${normalized.slice(0, maxLen)}...`;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const formatApiError = (err: unknown, fallback: string) => {
+  const errRecord = isRecord(err) ? err : null;
+  const response = errRecord && isRecord(errRecord.response) ? errRecord.response : null;
+  const data = response && isRecord(response.data) ? response.data : null;
+
+  const backendMessage = data && typeof data.message === 'string' ? data.message : '';
+  const backendError = data && typeof data.error === 'string' ? data.error : '';
+  const clientMessage = errRecord && typeof errRecord.message === 'string' ? errRecord.message : '';
+
+  if (backendMessage) {
+    return backendError ? `${backendMessage} (${backendError})` : backendMessage;
+  }
+
+  return clientMessage || fallback;
+};
+
 // ─── Component ───────────────────────────────────────────────────────────
 const Freelance = () => {
   const { activeAddress, signTransactions, algodClient } = useWallet();
@@ -184,8 +203,8 @@ const Freelance = () => {
         setEscrowId(created.escrowId);
         localStorage.setItem(DEMO_ESCROW_STORAGE_KEY, created.escrowId);
         setServerMessage('Escrow session initialized from server.');
-      } catch (err: any) {
-        setServerError(err?.response?.data?.message || 'Failed to initialize escrow session from server.');
+      } catch (err: unknown) {
+        setServerError(formatApiError(err, 'Failed to initialize escrow session from server.'));
       }
     };
 
@@ -268,15 +287,8 @@ const Freelance = () => {
       setServerMessage(
         `Escrow funded and verified. Tx: ${updated.txIds.fund} | Explorer: https://testnet.algoexplorer.io/tx/${updated.txIds.fund}`,
       );
-    } catch (err: any) {
-      const backendMessage = err?.response?.data?.message;
-      const backendError = err?.response?.data?.error;
-      const clientMessage = err?.message ? String(err.message) : '';
-      setServerError(
-        backendMessage
-          ? `${backendMessage}${backendError ? ` (${backendError})` : ''}`
-          : clientMessage || 'Failed to fund escrow.',
-      );
+    } catch (err: unknown) {
+      setServerError(formatApiError(err, 'Failed to fund escrow.'));
     } finally {
       setIsBusy(false);
     }
@@ -303,14 +315,8 @@ const Freelance = () => {
       setServerMessage(
         `Analysis complete: ${analysisPreview}`,
       );
-    } catch (err: any) {
-      const backendMessage = err?.response?.data?.message;
-      const backendError = err?.response?.data?.error;
-      setServerError(
-        backendMessage
-          ? `${backendMessage}${backendError ? ` (${backendError})` : ''}`
-          : 'Failed to submit and verify deliverables.',
-      );
+    } catch (err: unknown) {
+      setServerError(formatApiError(err, 'Failed to submit and verify deliverables.'));
     } finally {
       setIsBusy(false);
     }
@@ -340,14 +346,8 @@ const Freelance = () => {
       setServerMessage(
         `Analyze Now complete: ${analysisPreview}`,
       );
-    } catch (err: any) {
-      const backendMessage = err?.response?.data?.message;
-      const backendError = err?.response?.data?.error;
-      setServerError(
-        backendMessage
-          ? `${backendMessage}${backendError ? ` (${backendError})` : ''}`
-          : 'Failed to run AI verification.',
-      );
+    } catch (err: unknown) {
+      setServerError(formatApiError(err, 'Failed to run AI verification.'));
     } finally {
       setIsBusy(false);
     }
@@ -364,8 +364,8 @@ const Freelance = () => {
 
       setEscrow(mapEscrowToView(updated));
       setServerMessage(`Escrow moved to ${updated.state}. Tx: ${updated.txIds.release}`);
-    } catch (err: any) {
-      setServerError(err?.response?.data?.message || 'Failed to confirm delivery.');
+    } catch (err: unknown) {
+      setServerError(formatApiError(err, 'Failed to confirm delivery.'));
     } finally {
       setIsBusy(false);
     }
@@ -381,8 +381,8 @@ const Freelance = () => {
       const updated = await withdrawDisputeEscrow(escrowId, { actor });
       setEscrow(mapEscrowToView(updated));
       setServerMessage('Dispute withdrawn. Escrow remains funded and no release was executed.');
-    } catch (err: any) {
-      setServerError(err?.response?.data?.message || 'Failed to withdraw dispute.');
+    } catch (err: unknown) {
+      setServerError(formatApiError(err, 'Failed to withdraw dispute.'));
     } finally {
       setIsBusy(false);
     }
@@ -398,8 +398,8 @@ const Freelance = () => {
       const updated = await refundEscrow(escrowId, { actor });
       setEscrow(mapEscrowToView(updated));
       setServerMessage(`Refund requested and executed. Tx: ${updated.txIds.refund}`);
-    } catch (err: any) {
-      setServerError(err?.response?.data?.message || 'Failed to request refund.');
+    } catch (err: unknown) {
+      setServerError(formatApiError(err, 'Failed to request refund.'));
     } finally {
       setIsBusy(false);
     }
@@ -415,8 +415,8 @@ const Freelance = () => {
       const updated = await disputeEscrow(escrowId, { actor });
       setEscrow(mapEscrowToView(updated));
       setServerMessage(`Dispute raised. Tx: ${updated.txIds.dispute}`);
-    } catch (err: any) {
-      setServerError(err?.response?.data?.message || 'Failed to raise dispute.');
+    } catch (err: unknown) {
+      setServerError(formatApiError(err, 'Failed to raise dispute.'));
     } finally {
       setIsBusy(false);
     }
@@ -452,8 +452,8 @@ const Freelance = () => {
       setLiveUrl('');
       setNotes('');
       setServerMessage('Demo reset complete with a fresh server escrow.');
-    } catch (err: any) {
-      setServerError(err?.response?.data?.message || 'Failed to reset demo escrow.');
+    } catch (err: unknown) {
+      setServerError(formatApiError(err, 'Failed to reset demo escrow.'));
     } finally {
       setIsBusy(false);
     }

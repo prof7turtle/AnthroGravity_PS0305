@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, type ReactNode } from 'react';
+import { jwtDecode, type JwtPayload } from 'jwt-decode';
 
 interface User {
   id: string;
@@ -18,30 +19,45 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+type DecodedToken = JwtPayload & {
+  exp?: number;
+};
 
-  useEffect(() => {
-    // Check localStorage for token on mount
-    const savedToken = localStorage.getItem('algoescrow_token');
-    const savedUser = localStorage.getItem('algoescrow_user');
-    
-    if (savedToken && savedUser) {
-      try {
-        const decoded: any = jwtDecode(savedToken);
-        // Check if token expired
-        if (decoded.exp * 1000 < Date.now()) {
-          logout();
-        } else {
-          setToken(savedToken);
-          setUser(JSON.parse(savedUser));
-        }
-      } catch (err) {
-        logout();
-      }
+const readStoredAuth = (): { token: string | null; user: User | null } => {
+  const savedToken = localStorage.getItem('algoescrow_token');
+  const savedUser = localStorage.getItem('algoescrow_user');
+
+  if (!savedToken || !savedUser) {
+    return { token: null, user: null };
+  }
+
+  try {
+    const decoded = jwtDecode<DecodedToken>(savedToken);
+    if (!decoded.exp || decoded.exp * 1000 < Date.now()) {
+      localStorage.removeItem('algoescrow_token');
+      localStorage.removeItem('algoescrow_user');
+      return { token: null, user: null };
     }
-  }, []);
+
+    const parsedUser = JSON.parse(savedUser) as User;
+    return { token: savedToken, user: parsedUser };
+  } catch {
+    localStorage.removeItem('algoescrow_token');
+    localStorage.removeItem('algoescrow_user');
+    return { token: null, user: null };
+  }
+};
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [token, setToken] = useState<string | null>(() => readStoredAuth().token);
+  const [user, setUser] = useState<User | null>(() => readStoredAuth().user);
+
+  const clearAuth = () => {
+    localStorage.removeItem('algoescrow_token');
+    localStorage.removeItem('algoescrow_user');
+    setToken(null);
+    setUser(null);
+  };
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem('algoescrow_token', newToken);
@@ -51,10 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('algoescrow_token');
-    localStorage.removeItem('algoescrow_user');
-    setToken(null);
-    setUser(null);
+    clearAuth();
   };
 
   return (
