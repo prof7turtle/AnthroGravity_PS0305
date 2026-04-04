@@ -215,11 +215,15 @@ const EscrowDetail = () => {
           return algosdk.decodeUnsignedTransaction(bytes);
         });
 
-        const signedGroups = await signTransactions([decodedTransactions as any]);
-        const signedTransactions = Array.isArray(signedGroups) ? signedGroups[0] : [];
-        const signedTxns = (signedTransactions || [])
-          .filter((blob: Uint8Array | null | undefined): blob is Uint8Array => blob instanceof Uint8Array)
-          .map((blob: Uint8Array) => btoa(String.fromCharCode(...blob)));
+        const signedResult = await signTransactions([decodedTransactions]);
+
+        const candidateBlobs: unknown[] = Array.isArray(signedResult?.[0])
+          ? (signedResult[0] as unknown[])
+          : (signedResult as unknown[]);
+
+        const signedTxns = candidateBlobs
+          .filter((blob): blob is Uint8Array => blob instanceof Uint8Array)
+          .map((blob) => btoa(String.fromCharCode(...blob)));
 
         if (!signedTxns.length) {
           throw new Error('Wallet did not return signed transactions');
