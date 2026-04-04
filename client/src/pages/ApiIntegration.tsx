@@ -176,14 +176,23 @@ const ApiIntegration = () => {
             </p>
           </article>
 
-          <article className="rounded-xl border border-white/20 bg-fuchsia-500/10 p-5 lg:col-span-2">
-            <p className="text-[11px] uppercase tracking-wider text-fuchsia-100/85">Platform Fee</p>
-            <p className="mt-1 text-2xl font-bold text-white">0.5%</p>
-          </article>
+          <article className="rounded-xl border border-white/20 bg-black p-4 lg:col-span-4 lg:self-start">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Network Metrics</p>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-fuchsia-300/25 bg-fuchsia-500/10 p-4">
+                <p className="text-[11px] uppercase tracking-wider text-fuchsia-100/90">Platform Fee</p>
+                <p className="mt-1 text-3xl font-bold leading-none text-white">
+                  0.5<span className="text-xl align-top">%</span>
+                </p>
+                <p className="mt-2 text-[11px] text-white/55">Per transaction</p>
+              </div>
 
-          <article className="rounded-xl border border-white/20 bg-violet-500/10 p-5 lg:col-span-2">
-            <p className="text-[11px] uppercase tracking-wider text-violet-100/85">Finality</p>
-            <p className="mt-1 text-2xl font-bold text-white">2.8s</p>
+              <div className="rounded-lg border border-violet-300/25 bg-violet-500/10 p-4">
+                <p className="text-[11px] uppercase tracking-wider text-violet-100/90">Finality</p>
+                <p className="mt-1 text-3xl font-bold leading-none text-white">2.8s</p>
+                <p className="mt-2 text-[11px] text-white/55">TestNet confirmation</p>
+              </div>
+            </div>
           </article>
 
           <aside className="rounded-xl border border-white/20 bg-black p-4 lg:col-span-4 lg:row-span-2">

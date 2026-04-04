@@ -40,10 +40,18 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : '';
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   return (
-    <nav className="fixed left-0 top-0 z-50 w-full py-4 backdrop-blur-sm">
+    <nav className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-[#07070a]/80 py-3 backdrop-blur-xl sm:py-4">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-2 text-xl font-extrabold text-white tracking-tight cursor-pointer font-['Outfit'] sm:text-2xl">
+        <Link to="/" className="cursor-pointer font-['Outfit'] text-[1.95rem] font-extrabold tracking-tight text-white sm:text-2xl flex items-center gap-2">
           <span className="text-[#a855f7] drop-shadow-[0_0_10px_rgba(168,85,247,0.45)]">▲</span>
           AlgoEscrow
         </Link>
@@ -95,7 +103,7 @@ const Navbar = () => {
           type="button"
           aria-label="Toggle menu"
           onClick={() => setIsMobileMenuOpen((open) => !open)}
-          className="inline-flex items-center justify-center rounded-lg border border-white/15 bg-white/5 p-2 text-white transition-colors hover:bg-white/10 md:hidden"
+          className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 p-2.5 text-white transition-colors hover:bg-white/10 md:hidden"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -121,7 +129,7 @@ const Navbar = () => {
       </div>
 
       {isMobileMenuOpen && (
-        <div className="border-t border-white/10 bg-[#0a0a0c]/95 px-4 pb-4 pt-3 backdrop-blur-md md:hidden">
+        <div className="border-t border-white/10 bg-[#0a0a0c]/95 px-4 pb-5 pt-4 backdrop-blur-md md:hidden">
           <ul className="mb-4 flex flex-col gap-2">
             {navLinks.map((link) => (
               <li key={link.path}>
