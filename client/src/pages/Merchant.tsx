@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { deliverEscrow, getEscrow, type EscrowRecord } from '../lib/escrowApi';
+import {
+  deliverEscrow,
+  disputeEscrow,
+  getEscrow,
+  refundEscrow,
+  resolveEscrow,
+  withdrawDisputeEscrow,
+  type EscrowRecord,
+} from '../lib/escrowApi';
 
 type MerchantTab = 'transactions' | 'disputes' | 'api';
 
@@ -20,6 +28,16 @@ type TrackedShipment = {
   currentStageIndex: number;
   status: 'TRACKING' | 'DELIVERED' | 'RELEASED' | 'ERROR';
   releaseTxId: string;
+  error: string;
+  lastUpdate: string;
+};
+
+type DisputeCase = {
+  escrowId: string;
+  actor: string;
+  escrow: EscrowRecord;
+  busy: boolean;
+  message: string;
   error: string;
   lastUpdate: string;
 };
@@ -57,6 +75,12 @@ const Merchant = () => {
   const [isCreatingTracker, setIsCreatingTracker] = useState(false);
   const [busyTrackingIds, setBusyTrackingIds] = useState<string[]>([]);
   const [trackedShipments, setTrackedShipments] = useState<TrackedShipment[]>([]);
+  const [disputeEscrowIdInput, setDisputeEscrowIdInput] = useState('');
+  const [disputeActorInput, setDisputeActorInput] = useState('merchant-dashboard');
+  const [isLoadingDispute, setIsLoadingDispute] = useState(false);
+  const [disputeCases, setDisputeCases] = useState<DisputeCase[]>([]);
+  const [disputeStatus, setDisputeStatus] = useState('');
+  const [disputeError, setDisputeError] = useState('');
 
   const updateShipment = (trackingId: string, updater: (shipment: TrackedShipment) => TrackedShipment) => {
     setTrackedShipments((prev) => prev.map((shipment) => (shipment.trackingId === trackingId ? updater(shipment) : shipment)));
@@ -212,6 +236,107 @@ const Merchant = () => {
       )
     : 0;
 
+  const upsertDisputeCase = (escrow: EscrowRecord, actor: string, patch?: Partial<DisputeCase>) => {
+    setDisputeCases((prev) => {
+      const existing = prev.find((entry) => entry.escrowId === escrow.escrowId);
+      const nextCase: DisputeCase = {
+        escrowId: escrow.escrowId,
+        actor,
+        escrow,
+        busy: patch?.busy ?? existing?.busy ?? false,
+        message: patch?.message ?? existing?.message ?? '',
+        error: patch?.error ?? existing?.error ?? '',
+        lastUpdate: patch?.lastUpdate ?? new Date().toISOString(),
+      };
+
+      if (!existing) return [nextCase, ...prev];
+      return prev.map((entry) => (entry.escrowId === escrow.escrowId ? nextCase : entry));
+    });
+  };
+
+  const updateDisputeCase = (escrowId: string, updater: (entry: DisputeCase) => DisputeCase) => {
+    setDisputeCases((prev) => prev.map((entry) => (entry.escrowId === escrowId ? updater(entry) : entry)));
+  };
+
+  const loadDisputeCase = async (explicitEscrowId?: string) => {
+    const escrowId = (explicitEscrowId || disputeEscrowIdInput).trim();
+    const actor = disputeActorInput.trim() || 'merchant-dashboard';
+
+    setDisputeStatus('');
+    setDisputeError('');
+
+    if (!escrowId) {
+      setDisputeError('Escrow ID is required to load dispute controls.');
+      return;
+    }
+
+    setIsLoadingDispute(true);
+    try {
+      const escrow = await getEscrow(escrowId);
+      upsertDisputeCase(escrow, actor, {
+        message: `Escrow ${escrow.escrowId} loaded. Current state: ${escrow.state}`,
+        error: '',
+      });
+      setDisputeStatus(`Dispute console loaded for ${escrow.escrowId}.`);
+    } catch (err) {
+      setDisputeError(normalizeError(err));
+    } finally {
+      setIsLoadingDispute(false);
+    }
+  };
+
+  const runDisputeAction = async (
+    escrowId: string,
+    actor: string,
+    action: 'raise' | 'withdraw' | 'refund' | 'arb-release' | 'arb-refund',
+  ) => {
+    setDisputeStatus('');
+    setDisputeError('');
+    updateDisputeCase(escrowId, (entry) => ({ ...entry, busy: true, error: '' }));
+
+    try {
+      let updated: EscrowRecord;
+      if (action === 'raise') {
+        updated = await disputeEscrow(escrowId, { actor });
+      } else if (action === 'withdraw') {
+        updated = await withdrawDisputeEscrow(escrowId, { actor });
+      } else if (action === 'refund') {
+        updated = await refundEscrow(escrowId, { actor });
+      } else if (action === 'arb-release') {
+        updated = await resolveEscrow(escrowId, { releaseToSeller: true, actor });
+      } else {
+        updated = await resolveEscrow(escrowId, { releaseToSeller: false, actor });
+      }
+
+      const actionName =
+        action === 'raise'
+          ? 'Dispute raised'
+          : action === 'withdraw'
+            ? 'Dispute withdrawn'
+            : action === 'refund'
+              ? 'Refund executed'
+              : action === 'arb-release'
+                ? 'Arbiter released funds to seller'
+                : 'Arbiter refunded buyer';
+
+      const txRef = updated.txIds.dispute || updated.txIds.release || updated.txIds.refund || '';
+      const message = txRef ? `${actionName}. Tx: ${txRef}` : `${actionName}.`;
+
+      upsertDisputeCase(updated, actor, {
+        busy: false,
+        message,
+        error: '',
+      });
+      setDisputeStatus(message);
+    } catch (err) {
+      const message = normalizeError(err);
+      updateDisputeCase(escrowId, (entry) => ({ ...entry, busy: false, error: message }));
+      setDisputeError(message);
+    }
+  };
+
+  const openDisputeCount = disputeCases.filter((entry) => entry.escrow.state === 'DISPUTED').length;
+
 
   return (
     <div className="w-full bg-[#0a0a0c] min-h-screen text-white font-['Inter']">
@@ -252,7 +377,7 @@ const Merchant = () => {
 
               Disputes
             </div>
-            <span className="bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] text-white text-[0.65rem] px-2 py-0.5 rounded-full font-bold">1</span>
+            <span className="bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] text-white text-[0.65rem] px-2 py-0.5 rounded-full font-bold">{openDisputeCount}</span>
           </button>
           <button
             onClick={() => setActiveTab('api')}
@@ -463,40 +588,152 @@ const Merchant = () => {
                 <h2 className="text-2xl font-bold mb-2 font-['Outfit'] flex items-center gap-2">
                   Dispute Resolution
                 </h2>
-                <p className="text-[#8a8a98] text-sm mb-8">Manage disputed escrows and submit evidence for arbitration.</p>
+                <p className="text-[#8a8a98] text-sm mb-6">
+                  Plan flow implemented: FUNDED -&gt; DISPUTED -&gt; (ARBITER RELEASE -&gt; COMPLETED) or (ARBITER REFUND -&gt; REFUNDED).
+                </p>
 
-                <div className="bg-gradient-to-br from-red-500/10 to-transparent border border-red-500/20 rounded-xl p-6 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div className="rounded-xl border border-white/10 bg-black/25 p-5 mb-6">
+                  <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
                     <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="bg-red-500 text-white text-[0.65rem] font-bold px-2 py-0.5 rounded tracking-wider uppercase shadow-[0_0_10px_rgba(239,68,68,0.5)]">Disputed</span>
-                        <span className="text-[#8a8a98] font-mono text-xs bg-black/30 px-2 py-0.5 rounded">APP-37912</span>
-                      </div>
-                      <h3 className="text-xl font-bold text-white">Bespoke Mobile App</h3>
+                      <label className="mb-2 block text-xs uppercase tracking-widest text-white/60">Escrow ID</label>
+                      <input
+                        value={disputeEscrowIdInput}
+                        onChange={(event) => setDisputeEscrowIdInput(event.target.value)}
+                        placeholder="AE-XXXX or appId"
+                        className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2.5 text-sm text-white outline-none focus:border-[#c084fc]/70"
+                      />
                     </div>
-                    <div className="text-left md:text-right bg-black/30 p-3 rounded-lg border border-white/5">
-                      <div className="text-white font-mono font-bold text-lg">32,000 ALGO</div>
-                      <div className="text-red-400 text-xs font-semibold mt-1 flex items-center gap-1"> Awaiting Evidence</div>
+                    <div>
+                      <label className="mb-2 block text-xs uppercase tracking-widest text-white/60">Actor</label>
+                      <input
+                        value={disputeActorInput}
+                        onChange={(event) => setDisputeActorInput(event.target.value)}
+                        placeholder="arbiter-dashboard"
+                        className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2.5 text-sm text-white outline-none focus:border-[#c084fc]/70"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={() => void loadDisputeCase()}
+                        disabled={isLoadingDispute}
+                        className="w-full rounded-lg bg-[#c084fc] px-4 py-2.5 text-sm font-bold text-black transition hover:bg-[#d8b4fe] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isLoadingDispute ? 'Loading...' : 'Load Escrow'}
+                      </button>
                     </div>
                   </div>
 
-                  <div className="bg-[#0a0a0c] border border-white/5 p-5 rounded-lg mb-6 shadow-inner">
-                    <p className="text-sm text-[#8a8a98] mb-3 leading-relaxed">
-                      <strong className="text-white block mb-1">Buyer Claim Transcript:</strong>
-                      "The application crashes immediately upon opening on iOS 17 devices. I cannot release funds until this compatibility issue is fundamentally resolved per our agreement."
-                    </p>
-                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
-                      <span className="text-xs font-semibold text-red-500 flex items-center gap-1">
-                        Time remaining to respond: 48 hours
-                      </span>
-                    </div>
-                  </div>
+                  {disputeError && <p className="mt-3 text-sm text-rose-300">{disputeError}</p>}
+                  {disputeStatus && <p className="mt-3 text-sm text-emerald-300">{disputeStatus}</p>}
+                </div>
 
-                  <button className="bg-white text-black font-bold py-3 px-8 rounded-lg hover:bg-gray-200 transition-colors shadow-lg hover:shadow-white/20 w-full sm:w-auto">
-                    Submit Arbitration Evidence
-                  </button>
+                <div className="space-y-4">
+                  {disputeCases.length === 0 ? (
+                    <div className="rounded-xl border border-white/10 bg-black/25 p-6 text-sm text-white/60">
+                      No dispute case loaded. Add an escrow ID to manage full dispute resolution.
+                    </div>
+                  ) : (
+                    disputeCases.map((entry) => {
+                      const escrow = entry.escrow;
+                      const state = escrow.state;
+
+                      return (
+                        <article key={entry.escrowId} className="rounded-xl border border-white/10 bg-black/25 p-5">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs uppercase tracking-widest text-white/50">Escrow</p>
+                              <p className="mt-1 font-mono text-sm text-white">{escrow.escrowId}</p>
+                              <p className="mt-1 text-sm text-white/70">{escrow.itemName || 'Untitled Escrow'}</p>
+                            </div>
+                            <div className="text-right">
+                              <span
+                                className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold tracking-wider ${
+                                  state === 'DISPUTED'
+                                    ? 'border-rose-400/40 bg-rose-500/15 text-rose-200'
+                                    : state === 'COMPLETED'
+                                      ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200'
+                                      : state === 'REFUNDED'
+                                        ? 'border-amber-400/40 bg-amber-500/15 text-amber-200'
+                                        : 'border-cyan-400/40 bg-cyan-500/15 text-cyan-200'
+                                }`}
+                              >
+                                {state}
+                              </span>
+                              <p className="mt-2 text-xs text-white/65">
+                                {escrow.amount.toLocaleString()} {escrow.currency}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                            <p className="text-xs text-white/60">Buyer: <span className="font-mono text-white/75">{escrow.buyerAddress || '-'}</span></p>
+                            <p className="text-xs text-white/60">Seller: <span className="font-mono text-white/75">{escrow.sellerAddress || '-'}</span></p>
+                            <p className="text-xs text-white/60">Actor: <span className="font-mono text-white/75">{entry.actor}</span></p>
+                            <p className="text-xs text-white/60">Last update: {formatTimestamp(entry.lastUpdate)}</p>
+                          </div>
+
+                          {entry.error && <p className="mt-3 text-sm text-rose-300">{entry.error}</p>}
+                          {entry.message && <p className="mt-3 text-sm text-emerald-300">{entry.message}</p>}
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => void loadDisputeCase(entry.escrowId)}
+                              disabled={entry.busy}
+                              className="rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs font-bold text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Refresh
+                            </button>
+
+                            {state === 'FUNDED' && (
+                              <button
+                                onClick={() => void runDisputeAction(entry.escrowId, entry.actor, 'raise')}
+                                disabled={entry.busy}
+                                className="rounded-lg border border-rose-400/30 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-100 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Raise Dispute
+                              </button>
+                            )}
+
+                            {(state === 'FUNDED' || state === 'DISPUTED' || state === 'EXPIRED') && (
+                              <button
+                                onClick={() => void runDisputeAction(entry.escrowId, entry.actor, 'refund')}
+                                disabled={entry.busy}
+                                className="rounded-lg border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-xs font-bold text-amber-100 hover:bg-amber-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Refund Buyer
+                              </button>
+                            )}
+
+                            {state === 'DISPUTED' && (
+                              <>
+                                <button
+                                  onClick={() => void runDisputeAction(entry.escrowId, entry.actor, 'arb-release')}
+                                  disabled={entry.busy}
+                                  className="rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-3 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  Arbiter: Release Seller
+                                </button>
+                                <button
+                                  onClick={() => void runDisputeAction(entry.escrowId, entry.actor, 'arb-refund')}
+                                  disabled={entry.busy}
+                                  className="rounded-lg border border-orange-400/30 bg-orange-500/15 px-3 py-2 text-xs font-bold text-orange-100 hover:bg-orange-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  Arbiter: Refund Buyer
+                                </button>
+                                <button
+                                  onClick={() => void runDisputeAction(entry.escrowId, entry.actor, 'withdraw')}
+                                  disabled={entry.busy}
+                                  className="rounded-lg border border-cyan-400/30 bg-cyan-500/15 px-3 py-2 text-xs font-bold text-cyan-100 hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  Withdraw Dispute
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>

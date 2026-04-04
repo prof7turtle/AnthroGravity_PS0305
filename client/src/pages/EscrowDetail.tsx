@@ -236,8 +236,7 @@ const EscrowDetail = () => {
           : (signedResult as unknown[]);
 
         const signedTxns = candidateBlobs
-          .filter((blob): blob is Uint8Array => blob instanceof Uint8Array)
-          .map((blob) => btoa(String.fromCharCode(...blob)));
+          .filter((blob): blob is Uint8Array => blob instanceof Uint8Array);
 
         if (!signedTxns.length) {
           throw new Error('Wallet did not return signed transactions');
